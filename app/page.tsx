@@ -2,17 +2,16 @@
 
 import { useAuth } from "@/lib/auth-context"
 import { LoginForm } from "@/components/login-form"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { Dashboard } from "@/components/dashboard"
+import { ModernLayout } from "@/components/modern-layout"
+import ModernDashboard from "@/components/modern-dashboard"
 
 export default function Home() {
   const { user, isLoading } = useAuth()
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
@@ -22,13 +21,8 @@ export default function Home() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <AppSidebar />
-        <main className="flex-1 overflow-auto">
-          <Dashboard />
-        </main>
-      </div>
-    </SidebarProvider>
+    <ModernLayout title="Tableau de bord">
+      <ModernDashboard />
+    </ModernLayout>
   )
 }

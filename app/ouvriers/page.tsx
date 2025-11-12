@@ -1,17 +1,13 @@
-"use client"
+﻿"use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useMemo, useState } from "react"
+import { Button } from "@/components/ui/button-enhanced"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import { ModernLayout } from "@/components/modern-layout"
 import { useAuth } from "@/lib/auth-context"
-import { useData } from "@/lib/data-context"
 import { LoginForm } from "@/components/login-form"
 import { OuvrierForm } from "@/components/ouvrier-form"
-import { Plus, Search, Edit, Trash2, Wrench } from "lucide-react"
+import { OuvriersTable } from "@/components/ouvriers-table"
 import {
   Dialog,
   DialogContent,
@@ -31,18 +27,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Plus, Users } from "lucide-react"
+import { useData } from "@/lib/data-context"
+import type { Ouvrier } from "@/lib/data-context"
 
 export default function OuvriersPage() {
   const { user, isLoading } = useAuth()
-  const { ouvriers, deleteOuvrier } = useData()
+  const { ouvriers, addOuvrier, updateOuvrier, deleteOuvrier, toggleOuvrierStatut } = useData()
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedOuvrier, setSelectedOuvrier] = useState<any>(null)
+  const [selectedOuvrier, setSelectedOuvrier] = useState<Ouvrier | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
@@ -51,15 +50,25 @@ export default function OuvriersPage() {
     return <LoginForm />
   }
 
-  const filteredOuvriers = ouvriers.filter(
-    (ouvrier) =>
-      ouvrier.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ouvrier.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ouvrier.profession.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ouvrier.cin.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredOuvriers = useMemo(
+    () =>
+      ouvriers.filter((o) => {
+        const needle = searchTerm.toLowerCase().trim()
+        if (!needle) return true
+        return (
+          o.nom.toLowerCase().includes(needle) ||
+          o.prenom.toLowerCase().includes(needle) ||
+          o.metier.toLowerCase().includes(needle)
+        )
+      }),
+    [ouvriers, searchTerm],
   )
 
-  const handleEdit = (ouvrier: any) => {
+  const handleDelete = (id: string) => {
+    deleteOuvrier(id)
+  }
+
+  const handleEdit = (ouvrier: Ouvrier) => {
     setSelectedOuvrier(ouvrier)
     setIsFormOpen(true)
   }
@@ -69,146 +78,101 @@ export default function OuvriersPage() {
     setIsFormOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    deleteOuvrier(id)
-  }
-
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <AppSidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Gestion des Ouvriers</h1>
-                <p className="text-muted-foreground">Gérez le personnel de maintenance et de service</p>
+    <ModernLayout title="Gestion des Ouvriers">
+      <div className="p-8 space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 bg-gradient-to-br from-orange-500/10 to-amber-600/10 rounded-xl">
+                <Users className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
-              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={handleAdd}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un ouvrier
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>{selectedOuvrier ? "Modifier l'ouvrier" : "Ajouter un ouvrier"}</DialogTitle>
-                    <DialogDescription>
-                      {selectedOuvrier
-                        ? "Modifiez les informations de l'ouvrier"
-                        : "Ajoutez un nouveau membre du personnel"}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <OuvrierForm
-                    ouvrier={selectedOuvrier}
-                    onSuccess={() => {
-                      setIsFormOpen(false)
-                      setSelectedOuvrier(null)
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-orange-800 to-amber-900 dark:from-white dark:via-orange-300 dark:to-amber-300 bg-clip-text text-transparent">
+                Gestion des Ouvriers
+              </h1>
             </div>
-
-            {/* Search and Stats */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un ouvrier..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Badge variant="secondary" className="text-sm">
-                {filteredOuvriers.length} ouvrier{filteredOuvriers.length > 1 ? "s" : ""}
-              </Badge>
-            </div>
-
-            {/* Ouvriers Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredOuvriers.map((ouvrier) => (
-                <Card key={ouvrier.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-primary/10 rounded-full">
-                          <Wrench className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">
-                            {ouvrier.prenom} {ouvrier.nom}
-                          </CardTitle>
-                          <CardDescription>{ouvrier.profession}</CardDescription>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(ouvrier)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Êtes-vous sûr de vouloir supprimer {ouvrier.prenom} {ouvrier.nom} ? Cette action est
-                                irréversible.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(ouvrier.id)}>Supprimer</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-medium">CIN:</span> {ouvrier.cin}
-                      </div>
-                      <div>
-                        <span className="font-medium">Adresse:</span> {ouvrier.adresse}
-                      </div>
-                      <div>
-                        <span className="font-medium">Ajouté le:</span>{" "}
-                        {new Date(ouvrier.dateAjout).toLocaleDateString("fr-FR")}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filteredOuvriers.length === 0 && (
-              <div className="text-center py-12">
-                <Wrench className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Aucun ouvrier trouvé</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm
-                    ? "Aucun ouvrier ne correspond à votre recherche."
-                    : "Commencez par ajouter votre premier ouvrier."}
-                </p>
-                {!searchTerm && (
-                  <Button onClick={handleAdd}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un ouvrier
-                  </Button>
-                )}
-              </div>
-            )}
+            <p className="text-slate-600 dark:text-slate-400 text-lg">
+              Gérez les ouvriers et leurs assignations
+            </p>
           </div>
-        </main>
+          <Dialog
+            open={isFormOpen}
+            onOpenChange={(open) => {
+              setIsFormOpen(open)
+              if (!open) {
+                setSelectedOuvrier(null)
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleAdd}
+                variant="premium"
+                className="gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Nouvel ouvrier
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-xl">
+                  {selectedOuvrier ? "Modifier l'ouvrier" : "Nouvel ouvrier"}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedOuvrier 
+                    ? "Modifiez les informations de l'ouvrier." 
+                    : "Ajoutez un nouvel ouvrier à la liste."
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <OuvrierForm 
+                ouvrier={selectedOuvrier}
+                onSuccess={() => setIsFormOpen(false)}
+                onCancel={() => setIsFormOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Search Bar */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Input
+              placeholder="Rechercher un ouvrier..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-4 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <div className="text-sm text-slate-600 dark:text-slate-400">
+            {filteredOuvriers.length} ouvrier{filteredOuvriers.length > 1 ? 's' : ''}
+          </div>
+        </div>
+
+        {/* Table Section */}
+        <div>
+          <OuvriersTable
+            ouvriers={filteredOuvriers}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggleStatus={(ouvrierId) => toggleOuvrierStatut(ouvrierId)}
+          />
+        </div>
+
+        {/* Empty State */}
+        {filteredOuvriers.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
+              <Users className="h-12 w-12 text-slate-400 dark:text-slate-600" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 text-lg">
+              {searchTerm ? "Aucun ouvrier trouvé" : "Aucun ouvrier configuré"}
+            </p>
+          </div>
+        )}
       </div>
-    </SidebarProvider>
+    </ModernLayout>
   )
 }

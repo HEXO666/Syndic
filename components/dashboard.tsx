@@ -1,19 +1,34 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useData } from "@/lib/data-context"
-import { Users, Wrench, CreditCard, TrendingUp, AlertTriangle, Activity } from "lucide-react"
+import { NotificationCenter } from "@/components/notification-center"
+import { CertificatPDFGenerator } from "@/components/certificat-pdf-generator"
+import { AppFooter } from "@/components/app-footer"
+import { Users, Wrench, CreditCard, TrendingUp, AlertTriangle, Activity, FileText, Download } from "lucide-react"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 export function Dashboard() {
   const { user } = useAuth()
-  const { ouvriers, coproprietaires, history, paiements, getArrieres } = useData()
+  const { ouvriers, coproprietaires, history, paiements, getArrieres, getAllArrieres } = useData()
+  const [isPDFGeneratorOpen, setIsPDFGeneratorOpen] = useState(false)
 
   const arrieres = getArrieres()
+  const allArrieres = getAllArrieres()
   const totalPaiements = paiements.reduce((sum, p) => sum + (p.statut === "paye" ? p.montant : 0), 0)
+  const totalDettes = allArrieres.reduce((sum, arr) => sum + arr.montantTotal, 0)
 
   const stats = [
     {
@@ -26,26 +41,26 @@ export function Dashboard() {
     },
     {
       title: "Ouvriers Actifs",
-      value: ouvriers.length.toString(),
-      description: "Personnel en service",
+      value: ouvriers.filter(o => o.statut === "actif").length.toString(),
+      description: `${ouvriers.filter(o => o.statut === "inactif").length} inactifs`,
       icon: Wrench,
       color: "text-green-600",
       href: "/ouvriers",
     },
     {
-      title: "Paiements ce mois",
-      value: `€${totalPaiements.toLocaleString()}`,
+      title: "Paiements Reçus",
+      value: `${totalPaiements.toLocaleString()} DH`,
       description: `${paiements.filter((p) => p.statut === "paye").length} paiements`,
       icon: CreditCard,
       color: "text-primary",
       href: "/paiements",
     },
     {
-      title: "Arriérés",
-      value: arrieres.length.toString(),
-      description: `€${arrieres.reduce((sum, p) => sum + p.montant, 0).toLocaleString()}`,
+      title: "Dettes Totales",
+      value: `${totalDettes.toLocaleString()} DH`,
+      description: `${allArrieres.length} copropriétaires concernés`,
       icon: TrendingUp,
-      color: arrieres.length > 0 ? "text-orange-600" : "text-green-600",
+      color: totalDettes > 0 ? "text-red-600" : "text-green-600",
       href: "/paiements",
     },
   ]
@@ -154,18 +169,51 @@ export function Dashboard() {
                   <span className="text-sm font-medium">Nouveau paiement</span>
                 </Button>
               </Link>
-              {user?.role === "admin" && (
-                <Link href="/historique">
+              <Dialog open={isPDFGeneratorOpen} onOpenChange={setIsPDFGeneratorOpen}>
+                <DialogTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start">
-                    <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
-                    <span className="text-sm font-medium">Voir l'historique</span>
+                    <FileText className="h-5 w-5 text-primary mr-3" />
+                    <span className="text-sm font-medium">Générer un certificat</span>
                   </Button>
-                </Link>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Générateur de Certificat PDF</DialogTitle>
+                    <DialogDescription>
+                      Créez des certificats professionnels avec logo et signatures
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CertificatPDFGenerator onSuccess={() => setIsPDFGeneratorOpen(false)} />
+                </DialogContent>
+              </Dialog>
+              {user?.role === "admin" && (
+                <>
+                  <Link href="/utilisateurs">
+                    <Button variant="ghost" className="w-full justify-start">
+                      <Users className="h-5 w-5 text-red-600 mr-3" />
+                      <span className="text-sm font-medium">Gérer les utilisateurs</span>
+                    </Button>
+                  </Link>
+                  <Link href="/historique">
+                    <Button variant="ghost" className="w-full justify-start">
+                      <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
+                      <span className="text-sm font-medium">Voir l'historique</span>
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Notifications Section */}
+      <div className="mt-6">
+        <NotificationCenter />
+      </div>
+
+      {/* Footer */}
+      <AppFooter />
     </div>
   )
 }

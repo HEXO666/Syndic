@@ -1,16 +1,13 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button-enhanced"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import { ModernLayout } from "@/components/modern-layout"
 import { useAuth } from "@/lib/auth-context"
-import { useData } from "@/lib/data-context"
 import { LoginForm } from "@/components/login-form"
 import { CoproprietaireForm } from "@/components/coproprietaire-form"
+import { CoproprietairesTable } from "@/components/coproprietaires-table"
 import {
   Dialog,
   DialogContent,
@@ -30,20 +27,41 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Trash2, Users, Shield } from "lucide-react"
 
 export default function CoproprietairesPage() {
   const { user, isLoading } = useAuth()
-  const { coproprietaires, deleteCoproprietaire } = useData()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCoproprietaire, setSelectedCoproprietaire] = useState<any>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [filterImmeuble, setFilterImmeuble] = useState("all")
+  
+  // Mock data for demonstration
+  const [coproprietaires, setCoproprietaires] = useState([
+    {
+      id: "1",
+      nom: "Dupont",
+      prenom: "Jean",
+      adresse: "123 Rue de la Paix, Casablanca",
+      telephoneMaroc: "+212 6 12 34 56 78",
+      numeroTitreFoncier: "12345/A/2024",
+      habiteLEtranger: false,
+    },
+    {
+      id: "2",
+      nom: "Martin",
+      prenom: "Marie",
+      adresse: "45 Boulevard Hassan II, Rabat",
+      telephoneMaroc: "+212 7 23 45 67 89",
+      numeroTitreFoncier: "67890/B/2024",
+      habiteLEtranger: true,
+      adresseEtranger: "Paris, France",
+    },
+  ])
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
@@ -52,24 +70,18 @@ export default function CoproprietairesPage() {
     return <LoginForm />
   }
 
-  // Get unique immeubles for filter
-  const immeubles = Array.from(new Set(coproprietaires.map((c) => c.immeuble))).sort()
+  const filteredCoproprietaires = coproprietaires.filter((c) =>
+    c.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.adresse.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-  const filteredCoproprietaires = coproprietaires.filter((coproprietaire) => {
-    const matchesSearch =
-      coproprietaire.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coproprietaire.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coproprietaire.bloque.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coproprietaire.immeuble.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coproprietaire.numeroAppartement.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleDelete = (id: string) => {
+    setCoproprietaires(coproprietaires.filter((c) => c.id !== id))
+  }
 
-    const matchesImmeuble = filterImmeuble === "all" || coproprietaire.immeuble === filterImmeuble
-
-    return matchesSearch && matchesImmeuble
-  })
-
-  const handleEdit = (coproprietaire: any) => {
-    setSelectedCoproprietaire(coproprietaire)
+  const handleEdit = (copro: any) => {
+    setSelectedCoproprietaire(copro)
     setIsFormOpen(true)
   }
 
@@ -78,203 +90,100 @@ export default function CoproprietairesPage() {
     setIsFormOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    deleteCoproprietaire(id)
-  }
-
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <AppSidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Gestion des Copropriétaires</h1>
-                <p className="text-muted-foreground">Gérez les résidents de la copropriété</p>
+    <ModernLayout title="Gestion des Copropriétaires">
+      <div className="p-8 space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 bg-gradient-to-br from-emerald-500/10 to-green-600/10 rounded-xl">
+                <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={handleAdd}>
-                    <span className="mr-2">+</span>
-                    Ajouter un copropriétaire
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {selectedCoproprietaire ? "Modifier le copropriétaire" : "Ajouter un copropriétaire"}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {selectedCoproprietaire
-                        ? "Modifiez les informations du copropriétaire"
-                        : "Ajoutez un nouveau résident à la copropriété"}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CoproprietaireForm
-                    coproprietaire={selectedCoproprietaire}
-                    onSuccess={() => {
-                      setIsFormOpen(false)
-                      setSelectedCoproprietaire(null)
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-emerald-800 to-green-900 dark:from-white dark:via-emerald-300 dark:to-green-300 bg-clip-text text-transparent">
+                Gestion des Copropriétaires
+              </h1>
             </div>
-
-            {/* Search and Filters */}
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <span className="absolute left-3 top-3 text-muted-foreground">🔍</span>
-                <Input
-                  placeholder="Rechercher un copropriétaire..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={filterImmeuble} onValueChange={setFilterImmeuble}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filtrer par immeuble" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les immeubles</SelectItem>
-                  {immeubles.map((immeuble) => (
-                    <SelectItem key={immeuble} value={immeuble}>
-                      Immeuble {immeuble}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Badge variant="secondary" className="text-sm">
-                {filteredCoproprietaires.length} copropriétaire{filteredCoproprietaires.length > 1 ? "s" : ""}
-              </Badge>
-            </div>
-
-            {/* Statistics Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Copropriétaires</CardTitle>
-                  <span className="text-muted-foreground">👥</span>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{coproprietaires.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Immeubles</CardTitle>
-                  <span className="text-muted-foreground">🏢</span>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{immeubles.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Appartements</CardTitle>
-                  <span className="text-muted-foreground">🏠</span>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {new Set(coproprietaires.map((c) => `${c.immeuble}-${c.numeroAppartement}`)).size}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Copropriétaires Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredCoproprietaires.map((coproprietaire) => (
-                <Card key={coproprietaire.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-primary/10 rounded-full">
-                          <span className="text-primary">👤</span>
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">
-                            {coproprietaire.prenom} {coproprietaire.nom}
-                          </CardTitle>
-                          <CardDescription>
-                            Bloc {coproprietaire.bloque} - Imm. {coproprietaire.immeuble}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(coproprietaire)}>
-                          <span>✏️</span>
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <span className="text-destructive">🗑️</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Êtes-vous sûr de vouloir supprimer {coproprietaire.prenom} {coproprietaire.nom} ? Cette
-                                action est irréversible.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(coproprietaire.id)}>
-                                Supprimer
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">🏠</span>
-                        <span>Appartement {coproprietaire.numeroAppartement}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">🏢</span>
-                        <span>Bloc {coproprietaire.bloque}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Adresse:</span> {coproprietaire.adresse}
-                      </div>
-                      <div>
-                        <span className="font-medium">Ajouté le:</span>{" "}
-                        {new Date(coproprietaire.dateAjout).toLocaleDateString("fr-FR")}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filteredCoproprietaires.length === 0 && (
-              <div className="text-center py-12">
-                <span className="text-6xl text-muted-foreground mb-4 block">👥</span>
-                <h3 className="text-lg font-medium mb-2">Aucun copropriétaire trouvé</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm || filterImmeuble !== "all"
-                    ? "Aucun copropriétaire ne correspond à vos critères de recherche."
-                    : "Commencez par ajouter votre premier copropriétaire."}
-                </p>
-                {!searchTerm && filterImmeuble === "all" && (
-                  <Button onClick={handleAdd}>
-                    <span className="mr-2">+</span>
-                    Ajouter un copropriétaire
-                  </Button>
-                )}
-              </div>
-            )}
+            <p className="text-slate-600 dark:text-slate-400 text-lg">
+              Gérez les propriétaires et leurs informations personnelles
+            </p>
           </div>
-        </main>
+          <Dialog
+            open={isFormOpen}
+            onOpenChange={(open) => {
+              setIsFormOpen(open)
+              if (!open) {
+                setSelectedCoproprietaire(null)
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleAdd}
+                variant="premium"
+                className="gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Nouveau copropriétaire
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-xl">
+                  {selectedCoproprietaire ? "Modifier le copropriétaire" : "Nouveau copropriétaire"}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedCoproprietaire 
+                    ? "Modifiez les informations du copropriétaire." 
+                    : "Ajoutez un nouveau copropriétaire à la liste."
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <CoproprietaireForm 
+                coproprietaire={selectedCoproprietaire}
+                onSuccess={() => setIsFormOpen(false)}
+                onCancel={() => setIsFormOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Search Bar */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Input
+              placeholder="Rechercher un copropriétaire..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-4 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <div className="text-sm text-slate-600 dark:text-slate-400">
+            {filteredCoproprietaires.length} copropriétaire{filteredCoproprietaires.length > 1 ? 's' : ''}
+          </div>
+        </div>
+
+        {/* Table Section */}
+        <div>
+          <CoproprietairesTable
+            coproprietaires={filteredCoproprietaires}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </div>
+
+        {/* Empty State */}
+        {filteredCoproprietaires.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
+              <Users className="h-12 w-12 text-slate-400 dark:text-slate-600" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 text-lg">
+              {searchTerm ? "Aucun copropriétaire trouvé" : "Aucun copropriétaire configuré"}
+            </p>
+          </div>
+        )}
       </div>
-    </SidebarProvider>
+    </ModernLayout>
   )
 }

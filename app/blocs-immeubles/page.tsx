@@ -1,195 +1,314 @@
-"use client"
+﻿"use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/auth-context"
 import { useData } from "@/lib/data-context"
+import { LoginForm } from "@/components/login-form"
+import { ModernLayout } from "@/components/modern-layout"
 import { BlocForm } from "@/components/bloc-form"
 import { ImmeubleForm } from "@/components/immeuble-form"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Building2, Home, Edit, Trash2 } from "lucide-react"
+import type { Bloque, Immeuble } from "@/lib/data-context"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 export default function BlocsImmeubles() {
-  const { blocs, immeubles, getImmeublesByBloc, deleteBloc, deleteImmeuble } = useData()
+  const { user, isLoading } = useAuth()
+  const { blocs, immeubles, getImmeublesByBloc, deleteBloc, deleteImmeuble, clearBlocNotifications } = useData()
   const [searchTerm, setSearchTerm] = useState("")
-  const [showBlocForm, setShowBlocForm] = useState(false)
-  const [showImmeubleForm, setShowImmeubleForm] = useState(false)
-  const [editingBloc, setEditingBloc] = useState<any>(null)
-  const [editingImmeuble, setEditingImmeuble] = useState<any>(null)
-  const [selectedBlocId, setSelectedBlocId] = useState<string>("")
+  const [isBlocDialogOpen, setIsBlocDialogOpen] = useState(false)
+  const [isImmeubleDialogOpen, setIsImmeubleDialogOpen] = useState(false)
+  const [selectedBloc, setSelectedBloc] = useState<Bloque | null>(null)
+  const [selectedImmeuble, setSelectedImmeuble] = useState<Immeuble | null>(null)
+  const [selectedBlocForImmeuble, setSelectedBlocForImmeuble] = useState<string>("")
 
-  const filteredBlocs = blocs.filter((bloc) => bloc.nom.toLowerCase().includes(searchTerm.toLowerCase()))
-
-  const handleEditBloc = (bloc: any) => {
-    setEditingBloc(bloc)
-    setShowBlocForm(true)
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
-  const handleEditImmeuble = (immeuble: any) => {
-    setEditingImmeuble(immeuble)
-    setShowImmeubleForm(true)
+  if (!user) {
+    return <LoginForm />
+  }
+
+  useEffect(() => {
+    clearBlocNotifications()
+  }, [clearBlocNotifications])
+
+  const filteredBlocs = blocs.filter(bloc =>
+    bloc.nom.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const filteredImmeubles = immeubles.filter(immeuble =>
+    immeuble.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    immeuble.bloqueName.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const handleEditBloc = (bloc: Bloque) => {
+    setSelectedBloc(bloc)
+    setIsBlocDialogOpen(true)
+  }
+
+  const handleEditImmeuble = (immeuble: Immeuble) => {
+    setSelectedImmeuble(immeuble)
+    setSelectedBlocForImmeuble(immeuble.bloqueId)
+    setIsImmeubleDialogOpen(true)
   }
 
   const handleDeleteBloc = (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer ce bloc et tous ses immeubles ?")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce bloc ?")) {
       deleteBloc(id)
     }
   }
 
   const handleDeleteImmeuble = (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet immeuble ?")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet immeuble ?")) {
       deleteImmeuble(id)
     }
   }
 
-  const handleAddImmeuble = (blocId: string) => {
-    setSelectedBlocId(blocId)
-    setShowImmeubleForm(true)
-  }
-
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <AppSidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Blocs & Immeubles</h1>
-                <p className="text-muted-foreground">Gérez les blocs et leurs immeubles</p>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={() => setShowBlocForm(true)}>+ Nouveau Bloc</Button>
-                <Button variant="outline" onClick={() => setShowImmeubleForm(true)}>
-                  + Nouvel Immeuble
+    <ModernLayout title="Blocs et Immeubles">
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Blocs et Immeubles</h1>
+          <div className="flex gap-2">
+            <Dialog
+              open={isBlocDialogOpen}
+              onOpenChange={(open) => {
+                setIsBlocDialogOpen(open)
+                if (!open) {
+                  setSelectedBloc(null)
+                }
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    setSelectedBloc(null)
+                    setIsBlocDialogOpen(true)
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Nouveau bloc
                 </Button>
-              </div>
-            </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{selectedBloc ? "Modifier le bloc" : "Nouveau bloc"}</DialogTitle>
+                  <DialogDescription>
+                    {selectedBloc
+                      ? "Modifiez les informations de ce bloc."
+                      : "Ajoutez un bloc pour structurer vos immeubles."}
+                  </DialogDescription>
+                </DialogHeader>
+                <BlocForm
+                  bloc={selectedBloc}
+                  onSuccess={() => {
+                    setIsBlocDialogOpen(false)
+                    setSelectedBloc(null)
+                  }}
+                  onCancel={() => {
+                    setIsBlocDialogOpen(false)
+                    setSelectedBloc(null)
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+            <Dialog
+              open={isImmeubleDialogOpen}
+              onOpenChange={(open) => {
+                setIsImmeubleDialogOpen(open)
+                if (!open) {
+                  setSelectedImmeuble(null)
+                  setSelectedBlocForImmeuble("")
+                }
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    if (blocs.length === 0) {
+                      alert("Veuillez d'abord créer un bloc")
+                      return
+                    }
+                    setSelectedImmeuble(null)
+                    setSelectedBlocForImmeuble(blocs[0].id)
+                    setIsImmeubleDialogOpen(true)
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Home className="h-4 w-4" />
+                  Nouvel immeuble
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{selectedImmeuble ? "Modifier l'immeuble" : "Nouvel immeuble"}</DialogTitle>
+                  <DialogDescription>
+                    {selectedImmeuble
+                      ? "Actualisez les informations de cet immeuble."
+                      : "Associez un nouvel immeuble à l'un de vos blocs."}
+                  </DialogDescription>
+                </DialogHeader>
+                <ImmeubleForm
+                  immeuble={selectedImmeuble}
+                  selectedBlocId={selectedBlocForImmeuble}
+                  onSuccess={() => {
+                    setIsImmeubleDialogOpen(false)
+                    setSelectedImmeuble(null)
+                    setSelectedBlocForImmeuble("")
+                  }}
+                  onCancel={() => {
+                    setIsImmeubleDialogOpen(false)
+                    setSelectedImmeuble(null)
+                    setSelectedBlocForImmeuble("")
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
 
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Rechercher un bloc..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
+        <Input
+          type="text"
+          placeholder="Rechercher..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
 
-            <div className="grid gap-6">
-              {filteredBlocs.map((bloc) => {
-                const immeublesDuBloc = getImmeublesByBloc(bloc.id)
+        <Tabs defaultValue="blocs" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="blocs">Blocs ({blocs.length})</TabsTrigger>
+            <TabsTrigger value="immeubles">Immeubles ({immeubles.length})</TabsTrigger>
+          </TabsList>
 
-                return (
-                  <Card key={bloc.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 bg-primary rounded flex items-center justify-center text-white text-sm font-bold">
-                            B
-                          </div>
-                          <div>
-                            <CardTitle className="text-xl">{bloc.nom}</CardTitle>
-                            <CardDescription>{bloc.description}</CardDescription>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">
-                            {immeublesDuBloc.length} immeuble{immeublesDuBloc.length !== 1 ? "s" : ""}
-                          </Badge>
-                          <Button variant="outline" size="sm" onClick={() => handleAddImmeuble(bloc.id)}>
-                            + Immeuble
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleEditBloc(bloc)}>
-                            Modifier
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDeleteBloc(bloc.id)}>
-                            Supprimer
-                          </Button>
-                        </div>
+          <TabsContent value="blocs" className="space-y-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredBlocs.map((bloc) => (
+                <Card key={bloc.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5" />
+                        {bloc.nom}
+                      </CardTitle>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditBloc(bloc)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteBloc(bloc.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </CardHeader>
-
-                    {immeublesDuBloc.length > 0 && (
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {immeublesDuBloc.map((immeuble) => (
-                            <Card key={immeuble.id} className="border-l-4 border-l-primary/20">
-                              <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 bg-muted-foreground rounded flex items-center justify-center text-white text-xs">
-                                      I
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">{immeuble.nom}</p>
-                                      {immeuble.description && (
-                                        <p className="text-sm text-muted-foreground">{immeuble.description}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-1">
-                                    <Button variant="ghost" size="sm" onClick={() => handleEditImmeuble(immeuble)}>
-                                      Modifier
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteImmeuble(immeuble.id)}>
-                                      Supprimer
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </CardContent>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {bloc.description && (
+                      <p className="text-sm text-gray-600">{bloc.description}</p>
                     )}
-                  </Card>
-                )
-              })}
+                    <p className="text-xs text-gray-500 mt-2">
+                      {getImmeublesByBloc(bloc.id).length} immeuble(s)
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Ajouté le {new Date(bloc.dateAjout).toLocaleDateString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
             {filteredBlocs.length === 0 && (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <div className="w-12 h-12 bg-muted-foreground rounded-full flex items-center justify-center text-white text-xl font-bold mb-4">
-                    B
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Aucun bloc trouvé</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    {searchTerm
-                      ? "Aucun bloc ne correspond à votre recherche."
-                      : "Commencez par créer votre premier bloc."}
-                  </p>
-                  {!searchTerm && <Button onClick={() => setShowBlocForm(true)}>+ Créer un bloc</Button>}
-                </CardContent>
-              </Card>
+              <div className="text-center text-gray-500 py-8">
+                <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>
+                  {searchTerm ? "Aucun bloc trouvé" : "Aucun bloc créé"}
+                </p>
+              </div>
             )}
+          </TabsContent>
 
-            {showBlocForm && (
-              <BlocForm
-                bloc={editingBloc}
-                onClose={() => {
-                  setShowBlocForm(false)
-                  setEditingBloc(null)
-                }}
-              />
-            )}
+          <TabsContent value="immeubles" className="space-y-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredImmeubles.map((immeuble) => (
+                <Card key={immeuble.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Home className="h-5 w-5" />
+                        {immeuble.nom}
+                      </CardTitle>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditImmeuble(immeuble)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteImmeuble(immeuble.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm font-medium">
+                      Bloc: {immeuble.bloqueName}
+                    </p>
+                    {immeuble.description && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {immeuble.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-2">
+                      Ajouté le {new Date(immeuble.dateAjout).toLocaleDateString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-            {showImmeubleForm && (
-              <ImmeubleForm
-                immeuble={editingImmeuble}
-                selectedBlocId={selectedBlocId}
-                onClose={() => {
-                  setShowImmeubleForm(false)
-                  setEditingImmeuble(null)
-                  setSelectedBlocId("")
-                }}
-              />
+            {filteredImmeubles.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                <Home className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>
+                  {searchTerm ? "Aucun immeuble trouvé" : "Aucun immeuble créé"}
+                </p>
+              </div>
             )}
-          </div>
-        </main>
+          </TabsContent>
+        </Tabs>
       </div>
-    </SidebarProvider>
+    </ModernLayout>
   )
 }
