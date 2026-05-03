@@ -398,7 +398,7 @@ export function ModernPaiementForm({ paiement, coproprietaireId, onSuccess, onCa
   }
 
   return (
-  <Card variant="premium" className="w-full max-w-3xl mx-auto">
+  <Card  className="w-full max-w-3xl mx-auto">
       <CardHeader className="text-center border-b border-slate-100 dark:border-slate-800">
         <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
           <CreditCard className="h-8 w-8 text-white" />
@@ -511,11 +511,11 @@ export function ModernPaiementForm({ paiement, coproprietaireId, onSuccess, onCa
           </div>
 
           {selectedCoproprietaire && (
-            <Card variant="glass" className="border border-blue-200/40 dark:border-blue-800/40">
+            <Card  className="border border-blue-200/40 dark:border-blue-800/40">
               <CardContent className="pt-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--ink)] text-white font-semibold flex items-center justify-center">
                       {selectedCoproprietaire.prenom.charAt(0)}
                       {selectedCoproprietaire.nom.charAt(0)}
                     </div>
@@ -651,7 +651,7 @@ export function ModernPaiementForm({ paiement, coproprietaireId, onSuccess, onCa
 
           {formData.methodePaiement === "cheque" && (
             <Input
-              variant="glass"
+              
               size="lg"
               label="Numéro de chèque"
               leftIcon={<Receipt className="h-4 w-4" />}
@@ -665,7 +665,7 @@ export function ModernPaiementForm({ paiement, coproprietaireId, onSuccess, onCa
 
           {formData.methodePaiement === "virement" && (
             <Input
-              variant="glass"
+              
               size="lg"
               label="Référence du virement"
               leftIcon={<Building className="h-4 w-4" />}

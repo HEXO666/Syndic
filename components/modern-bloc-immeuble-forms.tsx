@@ -68,7 +68,7 @@ export function ModernBlocForm({ bloc, onSuccess, onCancel }: ModernBlocFormProp
   }
 
   return (
-    <Card variant="premium" className="w-full max-w-2xl mx-auto">
+    <Card  className="w-full max-w-2xl mx-auto">
       <CardHeader className="text-center border-b border-slate-100 dark:border-slate-800">
         <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-emerald-500 via-teal-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
           <Building2 className="h-8 w-8 text-white" />
@@ -196,7 +196,7 @@ export function ModernImmeubleForm({ immeuble, blocId, bloqueName, onSuccess, on
   }
 
   return (
-    <Card variant="glass" className="w-full max-w-2xl mx-auto">
+    <Card  className="w-full max-w-2xl mx-auto">
       <CardHeader className="text-center border-b border-slate-100 dark:border-slate-800">
         <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
           <Home className="h-8 w-8 text-white" />
@@ -211,7 +211,7 @@ export function ModernImmeubleForm({ immeuble, blocId, bloqueName, onSuccess, on
       <CardContent className="p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input
-            variant="glass"
+            
             size="lg"
             label="Nom de l'immeuble"
             leftIcon={<Home className="h-4 w-4" />}

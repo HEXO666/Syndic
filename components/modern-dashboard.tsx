@@ -2,361 +2,462 @@
 
 import { useState, useEffect } from "react"
 import { useData } from "@/lib/data-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-enhanced"
-import { Button } from "@/components/ui/button-enhanced"
-import { 
-  Building2, 
-  Users, 
-  Wrench, 
-  CreditCard, 
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  Calendar,
-  Euro,
-  FileText,
-  MapPin,
-  Phone
+import {
+  Building2, Users, Wrench, CreditCard, TrendingUp,
+  AlertTriangle, CheckCircle, Calendar, Euro, FileText,
+  Plus, ArrowUp, ArrowDown, ChevronRight,
 } from "lucide-react"
 
-interface StatCardProps {
-  title: string
+/* ─── KPI Card ─── */
+interface KpiProps {
+  label: string
   value: string | number
-  icon: React.ReactNode
-  description?: string
-  trend?: {
-    value: string
-    isPositive: boolean
-  }
-  variant?: "default" | "success" | "warning" | "danger"
+  unit?: string
+  sub?: string
+  delta?: string
+  deltaDir?: "up" | "down" | "muted"
+  foot?: string
+  Icon: React.ElementType
+  tone?: "default" | "good" | "warn" | "bad"
 }
 
-function StatCard({ title, value, icon, description, trend, variant = "default" }: StatCardProps) {
-  const getVariantStyles = () => {
-    switch (variant) {
-      case "success":
-        return "border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950"
-      case "warning":
-        return "border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950"
-      case "danger":
-        return "border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950 dark:to-pink-950"
-      default:
-        return "border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950"
-    }
-  }
-
-  const getIconColor = () => {
-    switch (variant) {
-      case "success": return "text-emerald-600 dark:text-emerald-400"
-      case "warning": return "text-amber-600 dark:text-amber-400"
-      case "danger": return "text-red-600 dark:text-red-400"
-      default: return "text-blue-600 dark:text-blue-400"
-    }
-  }
-
+function Kpi({ label, value, unit, sub, delta, deltaDir, foot, Icon, tone = "default" }: KpiProps) {
   return (
-    <Card className={`border-2 ${getVariantStyles()} hover:shadow-lg transition-all duration-300`}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
-              {title}
-            </p>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white">
-              {value}
-            </p>
-            {description && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {description}
-              </p>
-            )}
-            {trend && (
-              <div className={`flex items-center mt-2 text-sm ${
-                trend.isPositive ? "text-emerald-600" : "text-red-600"
-              }`}>
-                <span>{trend.isPositive ? "↗" : "↘"}</span>
-                <span className="ml-1">{trend.value}</span>
-              </div>
-            )}
-          </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getIconColor()}`}>
-            {icon}
-          </div>
+    <div style={{
+      background: "var(--card)",
+      border: "1px solid var(--line)",
+      borderRadius: 14,
+      padding: "16px 18px",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 500, display: "flex", alignItems: "center", gap: 7 }}>
+        <Icon style={{ width: 13, height: 13, color: "var(--ink-4)", strokeWidth: 1.8 }} />
+        {label}
+      </div>
+      <div style={{
+        fontFamily: "var(--font-inter-tight), sans-serif",
+        fontSize: 28,
+        fontWeight: 600,
+        letterSpacing: "-0.025em",
+        marginTop: 8,
+        lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+        color: tone === "bad" ? "var(--bad)" : tone === "good" ? "var(--good)" : tone === "warn" ? "var(--warn)" : "var(--foreground)",
+      }}>
+        {value}
+        {(unit || sub) && (
+          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-3)", marginLeft: 4, letterSpacing: 0 }}>
+            {unit ?? sub}
+          </span>
+        )}
+      </div>
+      {(delta || foot) && (
+        <div style={{ marginTop: 10, fontSize: 11.5, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 8 }}>
+          {delta && (
+            <span style={{
+              fontWeight: 500,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
+              fontVariantNumeric: "tabular-nums",
+              color: deltaDir === "up" ? "var(--good)" : deltaDir === "down" ? "var(--bad)" : "var(--ink-3)",
+            }}>
+              {deltaDir === "up" && <ArrowUp style={{ width: 11, height: 11 }} />}
+              {deltaDir === "down" && <ArrowDown style={{ width: 11, height: 11 }} />}
+              {delta}
+            </span>
+          )}
+          {foot && <span style={{ color: "var(--ink-3)" }}>· {foot}</span>}
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   )
 }
 
-interface RecentActivityProps {
-  activities: Array<{
-    id: string
-    action: string
-    entity: string
-    user: string
-    time: string
-    icon: React.ReactNode
-    color: string
-  }>
+/* ─── Activity Feed ─── */
+const ACTIVITIES = [
+  { type: "pay",    who: "Fatima Zahra Bennani", what: "a effectué un paiement de", amt: "1 200 DH", when: "il y a 12 min", tag: "Espèces · 2025" },
+  { type: "create", who: "Youssef El Amrani",    what: "a ajouté un nouveau copropriétaire", amt: "Karim Tazi", when: "il y a 1 h", tag: "Imm. B · Apt 304" },
+  { type: "update", who: "Omar Idrissi",          what: "a mis à jour la fiche", amt: "Aïcha Berrada", when: "il y a 3 h", tag: "Téléphone" },
+  { type: "pay",    who: "Hamid Cherkaoui",       what: "paiement partiel", amt: "600 / 1 200 DH", when: "il y a 5 h", tag: "Chèque #4471" },
+  { type: "delete", who: "Youssef El Amrani",    what: "a archivé l'ouvrier", amt: "Mohamed Lahlou", when: "hier, 16:42", tag: "Sécurité" },
+  { type: "create", who: "Système",               what: "quitus généré pour la vente", amt: "Apt 207 · Bloc A", when: "hier, 11:08", tag: "Vente" },
+]
+
+const ACT_COLORS: Record<string, { bg: string; color: string }> = {
+  pay:    { bg: "#fff5dc", color: "#7a5400" },
+  create: { bg: "var(--good-soft)", color: "var(--good)" },
+  update: { bg: "var(--accent-blue-soft)", color: "var(--accent-blue-ink)" },
+  delete: { bg: "var(--bad-soft)", color: "var(--bad)" },
 }
 
-function RecentActivity({ activities }: RecentActivityProps) {
+function ActivityFeed() {
   return (
-    <Card variant="glass" className="h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Activité récente
-        </CardTitle>
-        <CardDescription>
-          Dernières actions effectuées sur le système
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {activities.map((activity) => (
-            <div key={activity.id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activity.color}`}>
-                {activity.icon}
+    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px 10px" }}>
+        <div>
+          <div style={{ fontFamily: "var(--font-inter-tight), sans-serif", fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em" }}>
+            Activité récente
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>6 dernières actions</div>
+        </div>
+        <span style={{ fontSize: 11.5, color: "var(--ink-3)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          Voir tout <ChevronRight style={{ width: 11, height: 11 }} />
+        </span>
+      </div>
+
+      <div>
+        {ACTIVITIES.map((a, i) => {
+          const colors = ACT_COLORS[a.type] ?? ACT_COLORS.create
+          const ActIcon = a.type === "pay" ? Euro : a.type === "create" ? Plus : a.type === "update" ? CheckCircle : AlertTriangle
+          return (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                gap: 11,
+                padding: "10px 18px",
+                alignItems: "flex-start",
+                borderTop: i === 0 ? "1px solid var(--line-2)" : "none",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <div style={{
+                width: 26,
+                height: 26,
+                borderRadius: 7,
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: colors.bg,
+                color: colors.color,
+              }}>
+                <ActIcon style={{ width: 13, height: 13, strokeWidth: 2 }} />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  {activity.action}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {activity.entity} • par {activity.user}
-                </p>
+              <div style={{ fontSize: 12.5, lineHeight: 1.4, flex: 1, minWidth: 0 }}>
+                <span>
+                  <b style={{ fontWeight: 500 }}>{a.who}</b>{" "}
+                  <span style={{ color: "var(--ink-3)" }}>{a.what}</span>{" "}
+                  <b style={{ fontWeight: 500 }}>{a.amt}</b>
+                </span>
+                <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 1 }}>
+                  {a.tag} · {a.when}
+                </div>
               </div>
-              <span className="text-xs text-slate-400">
-                {activity.time}
-              </span>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
+/* ─── Monthly Chart ─── */
+const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"]
+const PAID =    [38, 42, 51, 47, 55, 49, 44, 39, 52, 58, 61, 22]
+const PENDING = [ 8, 11,  9, 14, 12, 16, 19, 23, 14, 11,  9, 32]
+
+function MonthlyChart() {
+  const max = 80
+  return (
+    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px 10px" }}>
+        <div>
+          <div style={{ fontFamily: "var(--font-inter-tight), sans-serif", fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em" }}>
+            Collecte mensuelle des cotisations
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
+            Cotisation annuelle 1 200 DH × copropriétaires
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 14, padding: "0 18px 8px", fontSize: 11.5, color: "var(--ink-3)" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "var(--ink)", verticalAlign: "middle" }} />
+          Encaissé
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#d6cfbf", verticalAlign: "middle" }} />
+          En attente
+        </span>
+        <span style={{ marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>
+          Total : <b style={{ color: "var(--foreground)", fontWeight: 600 }}>148 800 DH</b>
+        </span>
+      </div>
+
+      {/* SVG chart */}
+      <div style={{ padding: "8px 18px 16px", height: 220 }}>
+        <svg viewBox="0 0 600 200" preserveAspectRatio="none" style={{ width: "100%", height: "100%", display: "block", overflow: "visible" }}>
+          {/* Grid lines */}
+          {[0, 1, 2, 3, 4].map((i) => (
+            <line key={i} x1="32" x2="600" y1={20 + i * 36} y2={20 + i * 36} stroke="var(--line-2)" strokeDasharray="2 3" />
+          ))}
+          {[0, 20, 40, 60, 80].map((v, i) => (
+            <text key={v} x="0" y={163 - i * 36 + 3} fontSize="10" fill="var(--ink-4)" fontFamily="var(--font-mono), monospace">{v}</text>
+          ))}
+
+          {MONTHS.map((m, i) => {
+            const bw = 30, gap = 14, x = 36 + i * (bw + gap)
+            const ph = PAID[i] * 1.8
+            const eh = PENDING[i] * 1.8
+            const isHighlight = i === 10
+            return (
+              <g key={i}>
+                <rect x={x} y={163 - eh} width={bw} height={eh} fill="#d6cfbf" rx="2" />
+                <rect x={x} y={163 - eh - ph} width={bw} height={ph} fill="var(--ink)" rx="2" />
+                {isHighlight && (
+                  <text x={x + bw / 2} y={163 - eh - ph - 6} fontSize="10" fill="var(--foreground)" fontWeight="600" textAnchor="middle">
+                    {PAID[i] + PENDING[i]}
+                  </text>
+                )}
+                <text
+                  x={x + bw / 2}
+                  y="182"
+                  fontSize="10"
+                  fill={isHighlight ? "var(--foreground)" : "var(--ink-3)"}
+                  fontWeight={isHighlight ? "600" : "400"}
+                  textAnchor="middle"
+                >
+                  {m}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Quick Actions ─── */
+function QuickBtn({ Icon, label, primary = false }: { Icon: React.ElementType; label: string; primary?: boolean }) {
+  return (
+    <button style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 12px",
+      borderRadius: 7,
+      fontSize: 12.5,
+      fontWeight: 500,
+      cursor: "pointer",
+      border: primary ? "none" : "1px solid var(--line)",
+      background: primary ? "var(--ink)" : "var(--card)",
+      color: primary ? "#fff" : "var(--ink-2)",
+      fontFamily: "inherit",
+      width: "100%",
+      justifyContent: "flex-start",
+      transition: "background 0.12s",
+    }}
+    onMouseEnter={(e) => (e.currentTarget.style.background = primary ? "#000" : "var(--surface-2)")}
+    onMouseLeave={(e) => (e.currentTarget.style.background = primary ? "var(--ink)" : "var(--card)")}
+    >
+      <Icon style={{ width: 13, height: 13, strokeWidth: 2 }} />
+      {label}
+    </button>
+  )
+}
+
+/* ─── Main Dashboard ─── */
 export default function ModernDashboard() {
   const { coproprietaires, ouvriers, paiements, blocs, immeubles } = useData()
   const [stats, setStats] = useState({
-    totalCoproprietaires: 0,
-    totalOuvriers: 0,
+    totalCopro: 0,
+    activeOuvriers: 0,
     totalBlocs: 0,
     totalImmeubles: 0,
-    paiementsEnCours: 0,
-    montantTotal: 0,
+    montantCollecte: 0,
+    partiels: 0,
+    debiteurs: 0,
     tauxPaiement: 0,
-    debiteurs: 0
   })
 
-  const [recentActivities] = useState([
-    {
-      id: "1",
-      action: "Nouveau copropriétaire ajouté",
-      entity: "Ahmed Benali - Bloc A, Apt 23",
-      user: "Admin",
-      time: "Il y a 2h",
-      icon: <Users className="h-4 w-4" />,
-      color: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400"
-    },
-    {
-      id: "2",
-      action: "Paiement reçu",
-      entity: "1200 DH - Fatima Alami",
-      user: "Admin",
-      time: "Il y a 3h",
-      icon: <CreditCard className="h-4 w-4" />,
-      color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900 dark:text-emerald-400"
-    },
-    {
-      id: "3",
-      action: "Ouvrier activé",
-      entity: "Mohammed Tazi - Électricien",
-      user: "Admin",
-      time: "Il y a 5h",
-      icon: <Wrench className="h-4 w-4" />,
-      color: "bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-400"
-    },
-    {
-      id: "4",
-      action: "Nouveau bloc créé",
-      entity: "Bloc C - Résidence Al Manar",
-      user: "Admin",
-      time: "Hier",
-      icon: <Building2 className="h-4 w-4" />,
-      color: "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400"
-    }
-  ])
-
   useEffect(() => {
-    // Calcul des statistiques
-    const totalMontantPaye = paiements
-      .filter(p => p.statut === "paye")
-      .reduce((sum, p) => sum + p.montant, 0)
+    const montantCollecte = paiements
+      .filter((p) => p.statut === "paye")
+      .reduce((s, p) => s + p.montant, 0)
 
-    const tauxPaiement = coproprietaires.length > 0 
-      ? Math.round((paiements.filter(p => p.statut === "paye").length / coproprietaires.length) * 100)
+    const tauxPaiement = coproprietaires.length > 0
+      ? Math.round((paiements.filter((p) => p.statut === "paye").length / coproprietaires.length) * 100)
       : 0
 
-    const debiteurs = coproprietaires.filter(c => c.totalDettes > 0).length
-
     setStats({
-      totalCoproprietaires: coproprietaires.length,
-      totalOuvriers: ouvriers.filter(o => o.statut === "actif").length,
+      totalCopro: coproprietaires.length,
+      activeOuvriers: ouvriers.filter((o) => o.statut === "actif").length,
       totalBlocs: blocs.length,
       totalImmeubles: immeubles.length,
-      paiementsEnCours: paiements.filter(p => p.statut === "partiel").length,
-      montantTotal: totalMontantPaye,
+      montantCollecte,
+      partiels: paiements.filter((p) => p.statut === "partiel").length,
+      debiteurs: coproprietaires.filter((c) => c.totalDettes > 0).length,
       tauxPaiement,
-      debiteurs
     })
   }, [coproprietaires, ouvriers, paiements, blocs, immeubles])
 
+  const today = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20 min-h-screen">
-      {/* En-tête du dashboard */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 dark:from-white dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
-          Tableau de bord
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-2">
-          Vue d'ensemble de votre copropriété - {new Date().toLocaleDateString('fr-FR', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </p>
-      </div>
-
-      {/* Statistiques principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <StatCard
-          title="Copropriétaires"
-          value={stats.totalCoproprietaires}
-          icon={<Users className="h-6 w-6" />}
-          description="Propriétaires enregistrés"
-          trend={{ value: "+2 ce mois", isPositive: true }}
-          variant="default"
-        />
-        
-        <StatCard
-          title="Ouvriers actifs"
-          value={stats.totalOuvriers}
-          icon={<Wrench className="h-6 w-6" />}
-          description="Personnel disponible"
-          variant="success"
-        />
-        
-        <StatCard
-          title="Immeubles"
-          value={`${stats.totalImmeubles} / ${stats.totalBlocs} blocs`}
-          icon={<Building2 className="h-6 w-6" />}
-          description="Bâtiments gérés"
-          variant="default"
-        />
-        
-        <StatCard
-          title="Taux de paiement"
-          value={`${stats.tauxPaiement}%`}
-          icon={<TrendingUp className="h-6 w-6" />}
-          description="Cotisations à jour"
-          trend={{ value: "+5% ce mois", isPositive: true }}
-          variant={stats.tauxPaiement >= 80 ? "success" : stats.tauxPaiement >= 60 ? "warning" : "danger"}
-        />
-      </div>
-
-      {/* Métriques financières */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          title="Montant total collecté"
-          value={`${stats.montantTotal.toLocaleString()} DH`}
-          icon={<Euro className="h-6 w-6" />}
-          description="Paiements reçus cette année"
-          variant="success"
-        />
-        
-        <StatCard
-          title="Paiements partiels"
-          value={stats.paiementsEnCours}
-          icon={<AlertTriangle className="h-6 w-6" />}
-          description="En attente de complément"
-          variant="warning"
-        />
-        
-        <StatCard
-          title="Débiteurs"
-          value={stats.debiteurs}
-          icon={<AlertTriangle className="h-6 w-6" />}
-          description="Copropriétaires en retard"
-          variant={stats.debiteurs === 0 ? "success" : "danger"}
-        />
-      </div>
-
-      {/* Actions rapides et activité récente */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Actions rapides */}
-        <Card variant="premium" className="xl:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Actions rapides
-            </CardTitle>
-            <CardDescription>
-              Raccourcis vers les tâches fréquentes
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button variant="default" className="w-full justify-start" leftIcon={<Users className="h-4 w-4" />}>
-              Ajouter un copropriétaire
-            </Button>
-            <Button variant="outline" className="w-full justify-start" leftIcon={<CreditCard className="h-4 w-4" />}>
-              Enregistrer un paiement
-            </Button>
-            <Button variant="outline" className="w-full justify-start" leftIcon={<Wrench className="h-4 w-4" />}>
-              Gérer les ouvriers
-            </Button>
-            <Button variant="outline" className="w-full justify-start" leftIcon={<FileText className="h-4 w-4" />}>
-              Générer un rapport
-            </Button>
-            <Button variant="outline" className="w-full justify-start" leftIcon={<Building2 className="h-4 w-4" />}>
-              Ajouter un immeuble
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Activité récente */}
-        <div className="xl:col-span-2">
-          <RecentActivity activities={recentActivities} />
+    <div style={{ padding: "24px 28px 32px", background: "var(--background)", minHeight: "100%" }}>
+      {/* Page header */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20, gap: 16 }}>
+        <div>
+          <div style={{
+            fontFamily: "var(--font-inter-tight), sans-serif",
+            fontSize: 22,
+            fontWeight: 600,
+            letterSpacing: "-0.018em",
+            color: "var(--foreground)",
+          }}>
+            Tableau de bord
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 2 }}>
+            Vue d'ensemble · {today}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "7px 12px", borderRadius: 7, fontSize: 12.5, fontWeight: 500,
+            cursor: "pointer", border: "1px solid var(--line)",
+            background: "var(--card)", color: "var(--ink-2)", fontFamily: "inherit",
+          }}>
+            Exporter
+          </button>
+          <button style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "7px 12px", borderRadius: 7, fontSize: 12.5, fontWeight: 500,
+            cursor: "pointer", border: "none",
+            background: "var(--ink)", color: "#fff", fontFamily: "inherit",
+          }}>
+            <Plus style={{ width: 13, height: 13, strokeWidth: 2 }} />
+            Nouveau paiement
+          </button>
         </div>
       </div>
 
-      {/* Alertes importantes */}
+      {/* Alert banner */}
       {stats.debiteurs > 0 && (
-        <Card variant="elevated" className="border-amber-200 dark:border-amber-800">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-slate-900 dark:text-white">
-                  Attention - Retards de paiement
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {stats.debiteurs} copropriétaire(s) ont des paiements en retard. 
-                  Consultez la section paiements pour plus de détails.
-                </p>
-              </div>
-              <Button variant="outline" size="sm">
-                Voir les détails
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "11px 16px",
+          borderRadius: 10,
+          background: "#fff7e6",
+          border: "1px solid #f5e0b3",
+          marginBottom: 16,
+          fontSize: 12.5,
+        }}>
+          <AlertTriangle style={{ width: 16, height: 16, color: "var(--warn)", flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <b style={{ fontWeight: 600 }}>{stats.debiteurs} copropriétaire{stats.debiteurs > 1 ? "s" : ""} en retard</b>
+            {" "}
+            <span style={{ color: "var(--ink-3)" }}>
+              — soit {(stats.debiteurs * 1200).toLocaleString("fr-FR")} DH d'arriérés à recouvrer.
+            </span>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--accent-blue-ink)", cursor: "pointer", flexShrink: 0 }}>
+            Voir les débiteurs →
+          </span>
+        </div>
       )}
+
+      {/* 4-col KPI grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
+        <Kpi
+          label="Copropriétaires"
+          Icon={Users}
+          value={stats.totalCopro}
+          delta="+3 ce trimestre"
+          deltaDir="up"
+          foot="propriétaires enregistrés"
+        />
+        <Kpi
+          label="Ouvriers actifs"
+          Icon={Wrench}
+          value={stats.activeOuvriers}
+          foot={`sur ${ouvriers.length} au total`}
+          deltaDir="muted"
+        />
+        <Kpi
+          label="Immeubles"
+          Icon={Building2}
+          value={stats.totalImmeubles}
+          sub={`· ${stats.totalBlocs} blocs`}
+          foot="bâtiments gérés"
+        />
+        <Kpi
+          label="Taux de paiement"
+          Icon={TrendingUp}
+          value={stats.tauxPaiement}
+          unit="%"
+          delta="+6 pts"
+          deltaDir="up"
+          foot="vs. année précédente"
+          tone={stats.tauxPaiement >= 80 ? "good" : stats.tauxPaiement >= 60 ? "warn" : "bad"}
+        />
+      </div>
+
+      {/* 3-col financial grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
+        <Kpi
+          label="Montant collecté"
+          Icon={Euro}
+          value={stats.montantCollecte > 0 ? stats.montantCollecte.toLocaleString("fr-FR") : "0"}
+          unit="DH"
+          delta="paiements reçus cette année"
+          deltaDir="up"
+          tone="good"
+        />
+        <Kpi
+          label="Paiements partiels"
+          Icon={CreditCard}
+          value={stats.partiels}
+          delta="en attente de complément"
+          deltaDir="muted"
+          tone="warn"
+        />
+        <Kpi
+          label="Débiteurs"
+          Icon={AlertTriangle}
+          value={stats.debiteurs}
+          delta={stats.debiteurs > 0 ? `${(stats.debiteurs * 1200).toLocaleString("fr-FR")} DH dûs` : "aucune dette"}
+          deltaDir={stats.debiteurs > 0 ? "down" : "up"}
+          tone={stats.debiteurs === 0 ? "good" : "bad"}
+        />
+      </div>
+
+      {/* 2-col: chart + activity */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 12, marginBottom: 16 }}>
+        <MonthlyChart />
+        <ActivityFeed />
+      </div>
+
+      {/* Quick actions */}
+      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: "14px 18px" }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontFamily: "var(--font-inter-tight), sans-serif", fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em" }}>
+            Actions rapides
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>Raccourcis vers les tâches fréquentes</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+          <QuickBtn Icon={Users}     label="Ajouter un copropriétaire" primary />
+          <QuickBtn Icon={CreditCard} label="Enregistrer un paiement" />
+          <QuickBtn Icon={Wrench}    label="Gérer les ouvriers" />
+          <QuickBtn Icon={FileText}  label="Générer un rapport" />
+          <QuickBtn Icon={Building2} label="Ajouter un immeuble" />
+        </div>
+      </div>
     </div>
   )
 }

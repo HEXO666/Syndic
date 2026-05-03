@@ -88,7 +88,7 @@ export default function DesignShowcase() {
           <Button variant="success" leftIcon={<Star className="h-4 w-4" />}>Success</Button>
           <Button variant="warning">Warning</Button>
           <Button variant="secondary" rightIcon={<ArrowRight className="h-4 w-4" />}>Secondary</Button>
-          <Button variant="premium" leftIcon={<Sparkles className="h-4 w-4" />}>Premium</Button>
+          <Button variant="default" leftIcon={<Sparkles className="h-4 w-4" />}>Premium</Button>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ export default function DesignShowcase() {
           <Button size="sm">Small</Button>
           <Button size="default">Default</Button>
           <Button size="lg">Large</Button>
-          <Button size="xl">Extra Large</Button>
+          <Button size="lg">Extra Large</Button>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export default function DesignShowcase() {
         <div className="flex flex-wrap gap-4">
           <Button loading>Loading...</Button>
           <Button disabled>Disabled</Button>
-          <Button variant="premium" leftIcon={<Heart className="h-4 w-4" />} rightIcon={<Star className="h-4 w-4" />}>
+          <Button variant="default" leftIcon={<Heart className="h-4 w-4" />} rightIcon={<Star className="h-4 w-4" />}>
             With Icons
           </Button>
         </div>
@@ -157,7 +157,7 @@ export default function DesignShowcase() {
         </CardContent>
       </Card>
 
-      <Card variant="premium">
+      <Card variant="default">
         <CardHeader>
           <CardTitle>Carte Premium</CardTitle>
           <CardDescription>Style haut de gamme</CardDescription>
@@ -284,7 +284,7 @@ export default function DesignShowcase() {
               </h2>
             </div>
 
-            <Card variant="premium" className="p-8">
+            <Card variant="default" className="p-8">
               {activeDemo === "buttons" && renderButtonShowcase()}
               {activeDemo === "cards" && renderCardShowcase()}
               {activeDemo === "inputs" && renderInputShowcase()}

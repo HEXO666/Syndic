@@ -120,7 +120,7 @@ export default function CoproprietairesPage() {
             <DialogTrigger asChild>
               <Button 
                 onClick={handleAdd}
-                variant="premium"
+                variant="default"
                 className="gap-2"
               >
                 <Plus className="h-5 w-5" />

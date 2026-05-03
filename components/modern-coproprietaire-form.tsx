@@ -129,9 +129,9 @@ export function ModernCoproprietaireForm({ coproprietaire, onSuccess, onCancel }
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
                 stepNum === step
-                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg scale-110"
+                  ? "bg-[var(--ink)] text-white"
                   : stepNum < step
-                  ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white"
+                  ? "bg-[var(--good)] text-white"
                   : "bg-slate-200 dark:bg-slate-700 text-slate-500"
               }`}
             >
@@ -140,7 +140,7 @@ export function ModernCoproprietaireForm({ coproprietaire, onSuccess, onCancel }
             {stepNum < 2 && (
               <div
                 className={`w-8 h-1 mx-2 rounded-full transition-all duration-300 ${
-                  stepNum < step ? "bg-gradient-to-r from-emerald-500 to-green-600" : "bg-slate-200 dark:bg-slate-700"
+                  stepNum < step ? "bg-[var(--good)]" : "bg-slate-200 dark:bg-slate-700"
                 }`}
               />
             )}
@@ -151,9 +151,9 @@ export function ModernCoproprietaireForm({ coproprietaire, onSuccess, onCancel }
   )
 
   return (
-    <Card variant="premium" className="w-full max-w-2xl mx-auto">
+    <Card  className="w-full max-w-2xl mx-auto">
       <CardHeader className="text-center border-b border-slate-100 dark:border-slate-800">
-        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+        <div className="w-16 h-16 mx-auto mb-4 bg-[var(--ink)] rounded-xl flex items-center justify-center">
           <User className="h-8 w-8 text-white" />
         </div>
         <CardTitle className="text-2xl bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 dark:from-white dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">

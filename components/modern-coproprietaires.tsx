@@ -87,7 +87,7 @@ export default function ModernCoproprietaires() {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-semibold shadow-md">
+            <div className="w-12 h-12 bg-[var(--ink)] rounded-[8px] flex items-center justify-center text-white font-semibold shadow-md">
               {coprop.prenom.charAt(0)}{coprop.nom.charAt(0)}
             </div>
             <div>
@@ -156,11 +156,11 @@ export default function ModernCoproprietaires() {
   )
 
   const CoproprietaireListItem = ({ coprop }: { coprop: Coproprietaire }) => (
-    <Card variant="glass" className="hover:shadow-md transition-all duration-200">
+    <Card  className="hover:shadow-md transition-all duration-200">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 flex-1">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 bg-[var(--ink)] rounded-[7px] flex items-center justify-center text-white font-semibold">
               {coprop.prenom.charAt(0)}{coprop.nom.charAt(0)}
             </div>
             
@@ -226,7 +226,7 @@ export default function ModernCoproprietaires() {
 
   if (showForm) {
     return (
-      <div className="p-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20 min-h-screen">
+      <div className="p-6 bg-[var(--background)] min-h-screen">
         <ModernCoproprietaireForm
           coproprietaire={selectedCoproprietaire}
           onSuccess={handleFormSuccess}
@@ -240,7 +240,7 @@ export default function ModernCoproprietaires() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20 min-h-screen">
+    <div className="p-6 space-y-6 bg-[var(--background)] min-h-screen">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
@@ -263,7 +263,7 @@ export default function ModernCoproprietaires() {
 
       {/* Statistiques rapides */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
@@ -279,7 +279,7 @@ export default function ModernCoproprietaires() {
           </CardContent>
         </Card>
         
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center">
@@ -295,7 +295,7 @@ export default function ModernCoproprietaires() {
           </CardContent>
         </Card>
         
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center">
@@ -311,7 +311,7 @@ export default function ModernCoproprietaires() {
           </CardContent>
         </Card>
         
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center">
@@ -329,7 +329,7 @@ export default function ModernCoproprietaires() {
       </div>
 
       {/* Filtres et recherche */}
-      <Card variant="elevated">
+      <Card >
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 flex-1">
@@ -405,7 +405,7 @@ export default function ModernCoproprietaires() {
         )}
         
         {filteredCoproprietaires.length === 0 && (
-          <Card variant="glass">
+          <Card >
             <CardContent className="p-8 text-center">
               <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">

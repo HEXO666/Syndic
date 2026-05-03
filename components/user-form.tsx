@@ -312,7 +312,7 @@ export function UserForm({ user, onSuccess, onCancel }: UserFormProps) {
         </Button>
         <Button
           type="submit"
-          variant="premium"
+          variant="default"
           className="flex-1"
           disabled={isSubmitting}
         >

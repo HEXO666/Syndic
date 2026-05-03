@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
+import { getSupabaseClient } from "./supabase/client"
+import type { Profile } from "./supabase/types"
 
 export type UserRole = "admin" | "user"
 
@@ -25,132 +27,110 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+function profileToUser(p: Profile): User {
+  return { id: p.id, email: p.email, name: p.nom, role: p.role }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [users, setUsers] = useState<User[]>([
-    { id: "1", email: "admin@syndic.com", name: "Administrateur", role: "admin" },
-    { id: "2", email: "user@syndic.com", name: "Utilisateur", role: "user" },
-  ])
 
-  // Store user passwords separately (in real app, this would be hashed and stored securely)
-  const [userPasswords, setUserPasswords] = useState<Record<string, string>>({
-    "1": "admin123",
-    "2": "user123",
-  })
+  const supabase = getSupabaseClient()
+
+  const loadUsers = async () => {
+    const { data } = await supabase.from("profiles").select("*").order("nom")
+    if (data) setUsers((data as Profile[]).map(profileToUser))
+  }
 
   useEffect(() => {
-    // Load data from localStorage only on client side
-    if (typeof window !== "undefined") {
-      const storedUser = window.localStorage.getItem("syndic-user")
-      const storedUsers = window.localStorage.getItem("syndic-users")
-      const storedPasswords = window.localStorage.getItem("syndic-passwords")
-      
-      if (storedUser) {
-        setUser(JSON.parse(storedUser))
+    // Check existing session on mount
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single()
+        if (profile) {
+          setUser(profileToUser(profile as Profile))
+          await loadUsers()
+        }
       }
-      if (storedUsers) {
-        setUsers(JSON.parse(storedUsers))
+      setIsLoading(false)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single()
+        if (profile) {
+          setUser(profileToUser(profile as Profile))
+          await loadUsers()
+        }
+      } else if (event === "SIGNED_OUT") {
+        setUser(null)
+        setUsers([])
       }
-      if (storedPasswords) {
-        setUserPasswords(JSON.parse(storedPasswords))
-      }
-    }
-    setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
-
-  // Save users to localStorage when they change
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("syndic-users", JSON.stringify(users))
-    }
-  }, [users])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("syndic-passwords", JSON.stringify(userPasswords))
-    }
-  }, [userPasswords])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true)
-
-    const foundUser = users.find((u) => u.email === email && userPasswords[u.id] === password)
-
-    if (foundUser) {
-      setUser(foundUser)
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("syndic-user", JSON.stringify(foundUser))
-      }
-      setIsLoading(false)
-      return true
-    }
-
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     setIsLoading(false)
-    return false
+    return !error
   }
 
-  const logout = () => {
-    setUser(null)
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("syndic-user")
-    }
+  const logout = async () => {
+    await supabase.auth.signOut()
   }
 
-  const addUser = (userData: { name: string; email: string; role: UserRole; password: string }) => {
-    const newUser: User = {
-      id: Date.now().toString(),
-      name: userData.name,
+  const addUser = async (userData: { name: string; email: string; role: UserRole; password: string }) => {
+    const { data, error } = await supabase.auth.signUp({
       email: userData.email,
-      role: userData.role,
-    }
-    
-    setUsers(prev => [...prev, newUser])
-    setUserPasswords(prev => ({ ...prev, [newUser.id]: userData.password }))
-  }
-
-  const updateUser = (id: string, userData: Partial<User & { password?: string }>) => {
-    setUsers(prev => prev.map(u => 
-      u.id === id 
-        ? { ...u, ...userData } 
-        : u
-    ))
-    
-    if (userData.password) {
-      setUserPasswords(prev => ({ ...prev, [id]: userData.password! }))
-    }
-
-    // Update current user if editing self
-    if (user?.id === id) {
-      const updatedUser = { ...user, ...userData }
-      setUser(updatedUser)
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("syndic-user", JSON.stringify(updatedUser))
-      }
-    }
-  }
-
-  const deleteUser = (id: string) => {
-    setUsers(prev => prev.filter(u => u.id !== id))
-    setUserPasswords(prev => {
-      const newPasswords = { ...prev }
-      delete newPasswords[id]
-      return newPasswords
+      password: userData.password,
+      options: { data: { nom: userData.name, role: userData.role } },
     })
+    if (!error && data.user) {
+      // Ensure the profile has correct name + role (trigger may have run with defaults)
+      await supabase
+        .from("profiles")
+        .update({ nom: userData.name, role: userData.role })
+        .eq("id", data.user.id)
+      await loadUsers()
+    }
+  }
+
+  const updateUser = async (id: string, userData: Partial<User & { password?: string }>) => {
+    type ProfileUpdate = { nom?: string; role?: "admin" | "user" }
+    const updates: ProfileUpdate = {}
+    if (userData.name !== undefined) updates.nom = userData.name
+    if (userData.role !== undefined) updates.role = userData.role
+    if (Object.keys(updates).length > 0) {
+      await supabase.from("profiles").update(updates).eq("id", id)
+    }
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...userData } : u)))
+    if (user?.id === id) {
+      setUser((prev) => (prev ? { ...prev, ...userData } : null))
+    }
+  }
+
+  const deleteUser = async (id: string) => {
+    await supabase.from("profiles").delete().eq("id", id)
+    setUsers((prev) => prev.filter((u) => u.id !== id))
   }
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        users, 
-        login, 
-        logout, 
-        addUser, 
-        updateUser, 
-        deleteUser, 
-        isLoading 
-      }}
+    <AuthContext.Provider
+      value={{ user, users, login, logout, addUser, updateUser, deleteUser, isLoading }}
     >
       {children}
     </AuthContext.Provider>
@@ -159,8 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
+  if (context === undefined) throw new Error("useAuth must be used within an AuthProvider")
   return context
 }

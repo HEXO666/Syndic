@@ -110,7 +110,7 @@ export default function VentesPage() {
           >
             <DialogTrigger asChild>
               <Button
-                variant="premium"
+                variant="default"
                 className="gap-2"
                 onClick={() => {
                   setSelectedVente(null)

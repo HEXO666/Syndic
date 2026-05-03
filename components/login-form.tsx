@@ -1,15 +1,9 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/lib/auth-context"
-import { Building2, Lock, Mail } from "lucide-react"
+import { Lock, Mail } from "lucide-react"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
@@ -20,76 +14,176 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-
     const success = await login(email, password)
-    if (!success) {
-      setError("Email ou mot de passe incorrect")
-    }
+    if (!success) setError("Email ou mot de passe incorrect")
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "8px 10px 8px 36px",
+    fontSize: 13,
+    border: "1px solid var(--line)",
+    borderRadius: 8,
+    background: "var(--card)",
+    color: "var(--foreground)",
+    fontFamily: "inherit",
+    outline: "none",
+    transition: "border-color 0.15s",
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Building2 className="h-8 w-8 text-primary" />
-            </div>
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "var(--background)",
+      padding: 16,
+    }}>
+      <div style={{
+        width: "100%",
+        maxWidth: 380,
+        background: "var(--card)",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        overflow: "hidden",
+        boxShadow: "var(--shadow-md)",
+      }}>
+        {/* Header */}
+        <div style={{ padding: "28px 28px 20px", textAlign: "center", borderBottom: "1px solid var(--line-2)" }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: "var(--ink)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 14px",
+            color: "#fff",
+            fontFamily: "var(--font-inter-tight), sans-serif",
+            fontWeight: 700,
+            fontSize: 18,
+            letterSpacing: "-0.02em",
+            position: "relative",
+          }}>
+            SP
+            <div style={{
+              position: "absolute",
+              inset: 4,
+              borderRadius: 9,
+              border: "1px solid rgba(255,255,255,.2)",
+              pointerEvents: "none",
+            }} />
           </div>
-          <CardTitle className="text-2xl font-bold">Gestion Syndic</CardTitle>
-          <CardDescription>Connectez-vous à votre espace de gestion</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
+          <div style={{
+            fontFamily: "var(--font-inter-tight), sans-serif",
+            fontSize: 20,
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            color: "var(--foreground)",
+          }}>
+            Syndic Pro
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 4 }}>
+            Connectez-vous à votre espace de gestion
+          </div>
+        </div>
+
+        {/* Form */}
+        <div style={{ padding: 28 }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12.5, fontWeight: 500, marginBottom: 6, color: "var(--ink-2)" }}>
+                Email
+              </label>
+              <div style={{ position: "relative" }}>
+                <Mail style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--ink-4)", strokeWidth: 1.8 }} />
+                <input
                   type="email"
                   placeholder="admin@syndic.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
                   required
+                  style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--accent-blue)")}
+                  onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
+
+            <div>
+              <label style={{ display: "block", fontSize: 12.5, fontWeight: 500, marginBottom: 6, color: "var(--ink-2)" }}>
+                Mot de passe
+              </label>
+              <div style={{ position: "relative" }}>
+                <Lock style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--ink-4)", strokeWidth: 1.8 }} />
+                <input
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
                   required
+                  style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--accent-blue)")}
+                  onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
                 />
               </div>
             </div>
 
             {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "var(--bad-soft)",
+                border: "1px solid #f5c2c0",
+                fontSize: 12.5,
+                color: "var(--bad)",
+              }}>
+                {error}
+              </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Connexion..." : "Se connecter"}
-            </Button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                padding: "9px 12px",
+                borderRadius: 8,
+                background: "var(--ink)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 500,
+                border: "none",
+                cursor: isLoading ? "not-allowed" : "pointer",
+                opacity: isLoading ? 0.6 : 1,
+                fontFamily: "inherit",
+                width: "100%",
+                marginTop: 4,
+              }}
+            >
+              {isLoading ? "Connexion en cours…" : "Se connecter"}
+            </button>
           </form>
 
-          <div className="mt-6 text-sm text-muted-foreground">
-            <p className="font-medium mb-2">Comptes de test :</p>
-            <p>Admin: admin@syndic.com / admin123</p>
-            <p>User: user@syndic.com / user123</p>
+          <div style={{
+            marginTop: 18,
+            padding: "12px 14px",
+            background: "var(--surface-2)",
+            borderRadius: 8,
+            fontSize: 12,
+            color: "var(--ink-3)",
+          }}>
+            <div style={{ fontWeight: 500, marginBottom: 4, color: "var(--ink-2)" }}>Comptes de test</div>
+            <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11.5 }}>
+              admin@syndic.com / admin123
+            </div>
+            <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11.5 }}>
+              user@syndic.com / user123
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

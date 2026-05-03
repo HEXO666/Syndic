@@ -116,7 +116,7 @@ export default function ModernPaiements() {
   }
 
   return (
-    <div className="min-h-full p-6 space-y-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20">
+    <div className="min-h-full p-6 space-y-6 bg-[var(--background)]">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 dark:from-white dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
@@ -138,7 +138,7 @@ export default function ModernPaiements() {
         >
           <DialogTrigger asChild>
             <Button
-              variant="premium"
+              
               size="lg"
               onClick={handleAdd}
               leftIcon={<Plus className="h-4 w-4" />}
@@ -166,7 +166,7 @@ export default function ModernPaiements() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center">
               <CreditCard className="h-6 w-6" />
@@ -178,7 +178,7 @@ export default function ModernPaiements() {
           </CardContent>
         </Card>
 
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
               <Euro className="h-6 w-6" />
@@ -192,7 +192,7 @@ export default function ModernPaiements() {
           </CardContent>
         </Card>
 
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300 flex items-center justify-center">
               <Clock className="h-6 w-6" />
@@ -204,7 +204,7 @@ export default function ModernPaiements() {
           </CardContent>
         </Card>
 
-        <Card variant="glass">
+        <Card >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 flex items-center justify-center">
               <AlertTriangle className="h-6 w-6" />
@@ -217,7 +217,7 @@ export default function ModernPaiements() {
         </Card>
       </div>
 
-      <Card variant="elevated">
+      <Card >
         <CardHeader className="pb-0">
           <CardTitle className="text-lg">Filtrer les paiements</CardTitle>
           <CardDescription>
