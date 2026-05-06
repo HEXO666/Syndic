@@ -69,6 +69,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: upsertError.message }, { status: 400 })
     }
 
+    // Link the new auth user to the coproprietaire row so RLS and the
+    // situation API can look up by user_id instead of relying solely on metadata.
+    await admin
+      .from("coproprietaires")
+      .update({ user_id: newUserId })
+      .eq("id", body.coproprietaireId)
+
     return NextResponse.json({ userId: newUserId, email: body.email })
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error"

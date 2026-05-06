@@ -502,6 +502,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         immeuble_id: immeubleObj?.id ?? null,
         numero_appartement: copro.numeroAppartement,
         titre_foncier: copro.titreFoncier || null,
+        user_id: null,
       })
       setCoproprietaires((prev) => [
         ...prev,

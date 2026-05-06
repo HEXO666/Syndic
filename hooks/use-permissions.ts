@@ -8,6 +8,7 @@ import {
   saveUserPermissions,
   getDefaultPermissionsForRole,
 } from "@/lib/permissions"
+import { getSupabaseClient } from "@/lib/supabase/client"
 
 export function usePermissions() {
   const { user, isLoading } = useAuth()
@@ -22,6 +23,9 @@ export function usePermissions() {
     if (!user) return
     setPermissions(next)
     saveUserPermissions(user.id, next)
+    // Persist to Supabase so permissions survive across devices.
+    const supabase = getSupabaseClient()
+    void supabase.from("profiles").update({ permissions: next }).eq("id", user.id)
   }
 
   const can = useMemo(() => {

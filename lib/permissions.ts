@@ -41,3 +41,15 @@ export function saveUserPermissions(userId: string, permissions: Permissions) {
   if (typeof window === "undefined") return
   window.localStorage.setItem(storageKeyForUser(userId), JSON.stringify(permissions))
 }
+
+// Called on login to seed localStorage from the database value, so all
+// synchronous callers of loadUserPermissions() get DB-authoritative data.
+export function syncPermissionsFromDb(userId: string, role: "admin" | "user", dbPermissions: Record<string, boolean>) {
+  if (typeof window === "undefined") return
+  if (Object.keys(dbPermissions).length === 0) return
+  const merged: Permissions = {
+    ...getDefaultPermissionsForRole(role),
+    ...(dbPermissions as Partial<Permissions>),
+  }
+  window.localStorage.setItem(storageKeyForUser(userId), JSON.stringify(merged))
+}

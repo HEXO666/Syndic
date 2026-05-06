@@ -19,25 +19,39 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const meta = (user.user_metadata ?? {}) as Meta
-    const coproId = meta.coproprietaire_id
-    const coproCin = meta.coproprietaire_cin
-
-    if (!coproId && !coproCin) {
-      return NextResponse.json({ linked: false })
-    }
-
     const admin = createAdminSupabaseClient()
 
-    const coproQuery = admin
+    // Prefer the authoritative DB link (user_id column on coproprietaires).
+    // Fall back to user_metadata fields for accounts created before this column existed.
+    const { data: byUserId } = await admin
       .from("coproprietaires")
       .select("*, immeubles(nom, bloc_id, blocs(nom))")
+      .eq("user_id", user.id)
+      .maybeSingle()
 
-    const { data: copro, error: coproError } = coproId
-      ? await coproQuery.eq("id", coproId).single()
-      : await coproQuery.eq("cin", coproCin ?? "").single()
+    let copro = byUserId
 
-    if (coproError || !copro) {
+    if (!copro) {
+      const meta = (user.user_metadata ?? {}) as Meta
+      const coproId = meta.coproprietaire_id
+      const coproCin = meta.coproprietaire_cin
+
+      if (!coproId && !coproCin) {
+        return NextResponse.json({ linked: false })
+      }
+
+      const coproQuery = admin
+        .from("coproprietaires")
+        .select("*, immeubles(nom, bloc_id, blocs(nom))")
+
+      const { data: byMeta } = coproId
+        ? await coproQuery.eq("id", coproId).single()
+        : await coproQuery.eq("cin", coproCin ?? "").single()
+
+      copro = byMeta ?? null
+    }
+
+    if (!copro) {
       return NextResponse.json({ linked: false })
     }
 

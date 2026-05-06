@@ -40,10 +40,10 @@ export default function PermissionsPage() {
               <Checkbox
                 id="perm-manage-copro"
                 checked={permissions.manage_coproprietaires}
-                onCheckedChange={(checked) =>
+                onChange={(e) =>
                   setPermissions({
                     ...permissions,
-                    manage_coproprietaires: Boolean(checked),
+                    manage_coproprietaires: e.target.checked,
                   })
                 }
               />
@@ -61,10 +61,10 @@ export default function PermissionsPage() {
               <Checkbox
                 id="perm-create-copro-accounts"
                 checked={permissions.create_coproprietaire_accounts}
-                onCheckedChange={(checked) =>
+                onChange={(e) =>
                   setPermissions({
                     ...permissions,
-                    create_coproprietaire_accounts: Boolean(checked),
+                    create_coproprietaire_accounts: e.target.checked,
                   })
                 }
               />

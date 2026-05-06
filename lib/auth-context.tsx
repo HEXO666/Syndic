@@ -4,6 +4,7 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { getSupabaseClient } from "./supabase/client"
 import type { Profile } from "./supabase/types"
+import { syncPermissionsFromDb } from "./permissions"
 
 export type UserRole = "admin" | "user"
 
@@ -31,6 +32,11 @@ function profileToUser(p: Profile): User {
   return { id: p.id, email: p.email, name: p.nom, role: p.role }
 }
 
+function applyProfileSideEffects(profile: Profile) {
+  // Seed localStorage permissions from DB so synchronous callers stay consistent.
+  syncPermissionsFromDb(profile.id, profile.role, profile.permissions ?? {})
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
@@ -44,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Check existing session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const { data: profile } = await supabase
@@ -53,7 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq("id", session.user.id)
           .single()
         if (profile) {
-          setUser(profileToUser(profile as Profile))
+          const p = profile as Profile
+          applyProfileSideEffects(p)
+          setUser(profileToUser(p))
           await loadUsers()
         }
       }
@@ -70,7 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq("id", session.user.id)
           .single()
         if (profile) {
-          setUser(profileToUser(profile as Profile))
+          const p = profile as Profile
+          applyProfileSideEffects(p)
+          setUser(profileToUser(p))
           await loadUsers()
         }
       } else if (event === "SIGNED_OUT") {
@@ -100,7 +109,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: { data: { nom: userData.name, role: userData.role } },
     })
     if (!error && data.user) {
-      // Ensure the profile has correct name + role (trigger may have run with defaults)
       await supabase
         .from("profiles")
         .update({ nom: userData.name, role: userData.role })

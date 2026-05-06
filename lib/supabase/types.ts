@@ -47,6 +47,7 @@ export type Database = {
           email: string
           role: "admin" | "user"
           organisation_id: string | null
+          permissions: Record<string, boolean>
           created_at: string
           updated_at: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           email: string
           role?: "admin" | "user"
           organisation_id?: string | null
+          permissions?: Record<string, boolean>
           created_at?: string
           updated_at?: string
         }
@@ -65,6 +67,7 @@ export type Database = {
           email?: string
           role?: "admin" | "user"
           organisation_id?: string | null
+          permissions?: Record<string, boolean>
           created_at?: string
           updated_at?: string
         }
@@ -169,6 +172,7 @@ export type Database = {
           id: string
           organisation_id: string
           immeuble_id: string | null
+          user_id: string | null
           nom: string
           prenom: string
           adresse: string | null
@@ -186,6 +190,7 @@ export type Database = {
           id?: string
           organisation_id: string
           immeuble_id?: string | null
+          user_id?: string | null
           nom: string
           prenom: string
           adresse?: string | null
@@ -203,6 +208,7 @@ export type Database = {
           id?: string
           organisation_id?: string
           immeuble_id?: string | null
+          user_id?: string | null
           nom?: string
           prenom?: string
           adresse?: string | null
