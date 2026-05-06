@@ -29,7 +29,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Plus, Edit, Trash2, Users, Shield, User, Crown, Mail } from "lucide-react"
+import Link from "next/link"
+import { Plus, Edit, Trash2, Users, Shield, User, Crown, Mail, KeyRound } from "lucide-react"
 
 export default function UtilisateursPage() {
   const { user, isLoading, users, deleteUser } = useAuth()
@@ -221,6 +222,14 @@ export default function UtilisateursPage() {
                     <Edit className="h-4 w-4" />
                     Modifier
                   </Button>
+                  {targetUser.role === "user" && (
+                    <Button variant="ghost" size="sm" asChild className="gap-2">
+                      <Link href="/permissions">
+                        <KeyRound className="h-4 w-4" />
+                        Droits
+                      </Link>
+                    </Button>
+                  )}
                   {targetUser.id !== user.id && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
