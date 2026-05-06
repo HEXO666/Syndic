@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { useAuth } from "./auth-context"
 import { getSupabaseClient } from "./supabase/client"
 import {
   blocsService,
@@ -318,6 +319,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 const COTISATION_ANNUELLE = 1200
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  const { user, isLoading: authLoading } = useAuth()
   const supabase = getSupabaseClient()
 
   const [orgId, setOrgId] = useState<string>("")
@@ -373,17 +375,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        if (session) loadAllData()
-      } else if (event === "SIGNED_OUT") {
-        clearAllData()
-      }
-    })
-    return () => subscription.unsubscribe()
-  }, [loadAllData, clearAllData])
+    if (authLoading) return
+    if (user) {
+      void loadAllData()
+    } else {
+      clearAllData()
+    }
+  }, [user, authLoading, loadAllData, clearAllData])
 
   // ─── BLOCS ──────────────────────────────────────────────────────────────────
 

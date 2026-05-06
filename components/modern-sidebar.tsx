@@ -1,16 +1,19 @@
 "use client"
 
+import { useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useData } from "@/lib/data-context"
+import { loadUserPermissions } from "@/lib/permissions"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard, Users, Building2, Wrench, CreditCard,
-  FileText, History, Handshake, Crown, Shield, ChevronDown,
+  FileText, History, Handshake, Crown, Shield, ChevronDown, UserPlus,
 } from "lucide-react"
 
 const NAV_MAIN = [
   { id: "dash",     title: "Tableau de bord",   href: "/",               Icon: LayoutDashboard },
+  { id: "espace",   title: "Mon espace",        href: "/espace",          Icon: Shield },
   { id: "copro",    title: "Copropriétaires",    href: "/coproprietaires", Icon: Users },
   { id: "ventes",   title: "Ventes",             href: "/ventes",         Icon: Handshake },
   { id: "blocs",    title: "Blocs & Immeubles",  href: "/blocs-immeubles", Icon: Building2, showBlocBadge: true },
@@ -21,6 +24,8 @@ const NAV_MAIN = [
 
 const NAV_ADMIN = [
   { id: "users", title: "Utilisateurs", href: "/utilisateurs", Icon: Crown },
+  { id: "add-copro", title: "Ajouter une copro", href: "/ajouter-copro", Icon: UserPlus },
+  { id: "perms", title: "Permissions",  href: "/permissions",  Icon: Shield },
   { id: "rep",   title: "Rapports",     href: "/rapports",     Icon: FileText },
 ]
 
@@ -99,9 +104,47 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function ModernSidebar() {
   const { user } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const { blocNotifications, paiements } = useData()
 
+  const permissions = user ? loadUserPermissions(user.id, user.role) : null
+  const canManageCoproprietaires = !!permissions?.manage_coproprietaires
+  const canCreateCoproAccounts = !!permissions?.create_coproprietaire_accounts
+
   const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href)
+
+  useEffect(() => {
+    if (!user) return
+
+    const mainHrefs = NAV_MAIN.filter((item) => {
+      if (item.href === "/coproprietaires") return canManageCoproprietaires
+      if (item.href === "/espace") return user.role === "user"
+      return true
+    }).map((i) => i.href)
+
+    const adminHrefs = user.role === "admin"
+      ? NAV_ADMIN.filter((item) => {
+        if (item.href === "/ajouter-copro") return canCreateCoproAccounts
+        return true
+      }).map((i) => i.href)
+      : []
+
+    const hrefs = Array.from(new Set([...mainHrefs, ...adminHrefs]))
+
+    const id = window.setTimeout(() => {
+      hrefs.forEach((href) => {
+        if (!isActive(href)) router.prefetch(href)
+      })
+    }, 0)
+
+    return () => window.clearTimeout(id)
+  }, [
+    user,
+    canManageCoproprietaires,
+    canCreateCoproAccounts,
+    router,
+    pathname,
+  ])
 
   const initials = user?.name
     ?.split(" ")
@@ -169,7 +212,11 @@ export function ModernSidebar() {
       {/* Main nav */}
       <SectionLabel>Gestion</SectionLabel>
       <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        {NAV_MAIN.map((item) => {
+        {NAV_MAIN.filter((item) => {
+          if (item.href === "/coproprietaires") return canManageCoproprietaires
+          if (item.href === "/espace") return user?.role === "user"
+          return true
+        }).map((item) => {
           let badge: string | undefined
           if (item.showBlocBadge && blocNotifications > 0) badge = blocNotifications.toString()
           if (item.showPaieBadge && paiements.length > 0) badge = paiements.length.toString()
@@ -191,7 +238,10 @@ export function ModernSidebar() {
         <>
           <SectionLabel>Administration</SectionLabel>
           <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {NAV_ADMIN.map((item) => (
+            {NAV_ADMIN.filter((item) => {
+              if (item.href === "/ajouter-copro") return canCreateCoproAccounts
+              return true
+            }).map((item) => (
               <NavItem
                 key={item.href}
                 href={item.href}

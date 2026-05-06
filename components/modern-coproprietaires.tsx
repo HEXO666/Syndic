@@ -1,11 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useData } from "@/lib/data-context"
+import { useAuth } from "@/lib/auth-context"
+import { loadUserPermissions } from "@/lib/permissions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-enhanced"
 import { Button } from "@/components/ui/button-enhanced"
 import { Input } from "@/components/ui/input-enhanced"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { ModernCoproprietaireForm } from "@/components/modern-coproprietaire-form"
 import { 
   Users, 
@@ -21,17 +25,34 @@ import {
   CheckCircle,
   Filter,
   Download,
-  Eye
+  Eye,
+  UserPlus
 } from "lucide-react"
 import type { Coproprietaire } from "@/lib/data-context"
 
 export default function ModernCoproprietaires() {
   const { coproprietaires, deleteCoproprietaire } = useData()
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCoproprietaire, setSelectedCoproprietaire] = useState<Coproprietaire | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [filterStatus, setFilterStatus] = useState<"all" | "debtors" | "current">("all")
+
+  const permissions = useMemo(() => {
+    if (!user) return null
+    return loadUserPermissions(user.id, user.role)
+  }, [user])
+
+  const canCreateCoproAccounts = !!permissions?.create_coproprietaire_accounts
+
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false)
+  const [accountCopro, setAccountCopro] = useState<Coproprietaire | null>(null)
+  const [accountEmail, setAccountEmail] = useState("")
+  const [accountPassword, setAccountPassword] = useState("")
+  const [accountSubmitting, setAccountSubmitting] = useState(false)
+  const [accountError, setAccountError] = useState<string | null>(null)
+  const [accountSuccess, setAccountSuccess] = useState<string | null>(null)
 
   const filteredCoproprietaires = coproprietaires.filter((coprop) => {
     const matchesSearch = 
@@ -57,6 +78,47 @@ export default function ModernCoproprietaires() {
   const handleDelete = (id: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce copropriétaire ?")) {
       deleteCoproprietaire(id)
+    }
+  }
+
+  const openCreateAccount = (coprop: Coproprietaire) => {
+    setAccountCopro(coprop)
+    setAccountEmail("")
+    setAccountPassword("")
+    setAccountError(null)
+    setAccountSuccess(null)
+    setAccountDialogOpen(true)
+  }
+
+  const submitCreateAccount = async () => {
+    if (!accountCopro) return
+
+    setAccountSubmitting(true)
+    setAccountError(null)
+    setAccountSuccess(null)
+
+    try {
+      const res = await fetch("/api/admin/create-copro-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: accountEmail,
+          password: accountPassword,
+          coproprietaireId: accountCopro.id,
+          coproprietaireCin: accountCopro.cin || undefined,
+          coproprietaireName: `${accountCopro.prenom} ${accountCopro.nom}`,
+        }),
+      })
+
+      const data = (await res.json()) as { error?: string; email?: string }
+      if (!res.ok) throw new Error(data.error || "Erreur lors de la création du compte")
+
+      setAccountSuccess(`Compte créé: ${data.email ?? accountEmail}`)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Erreur inconnue"
+      setAccountError(message)
+    } finally {
+      setAccountSubmitting(false)
     }
   }
 
@@ -124,7 +186,7 @@ export default function ModernCoproprietaires() {
             <span>Cotisation: {coprop.montantAnnuel} DH/an</span>
           </div>
 
-          <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-2 mt-4">
             <Button
               variant="outline"
               size="sm"
@@ -133,6 +195,16 @@ export default function ModernCoproprietaires() {
             >
               Modifier
             </Button>
+            {canCreateCoproAccounts && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openCreateAccount(coprop)}
+                leftIcon={<UserPlus className="h-3 w-3" />}
+              >
+                Créer compte
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -209,6 +281,16 @@ export default function ModernCoproprietaires() {
             >
               Modifier
             </Button>
+            {canCreateCoproAccounts && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openCreateAccount(coprop)}
+                leftIcon={<UserPlus className="h-3 w-3" />}
+              >
+                Créer compte
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -241,6 +323,70 @@ export default function ModernCoproprietaires() {
 
   return (
     <div className="p-6 space-y-6 bg-[var(--background)] min-h-screen">
+      <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Créer un compte copropriétaire</DialogTitle>
+            <DialogDescription>
+              {accountCopro
+                ? `Pour ${accountCopro.prenom} ${accountCopro.nom} (CIN: ${accountCopro.cin || "—"})`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="copro-account-email">Email</Label>
+              <input
+                id="copro-account-email"
+                type="email"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={accountEmail}
+                onChange={(e) => setAccountEmail(e.target.value)}
+                placeholder="coproprietaire@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="copro-account-password">Mot de passe temporaire</Label>
+              <input
+                id="copro-account-password"
+                type="text"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={accountPassword}
+                onChange={(e) => setAccountPassword(e.target.value)}
+                placeholder="ex: copro123"
+              />
+            </div>
+
+            {accountError && (
+              <div className="text-sm text-red-600">{accountError}</div>
+            )}
+            {accountSuccess && (
+              <div className="text-sm text-emerald-600">{accountSuccess}</div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAccountDialogOpen(false)}
+              disabled={accountSubmitting}
+            >
+              Fermer
+            </Button>
+            <Button
+              variant="default"
+              onClick={submitCreateAccount}
+              disabled={accountSubmitting || !accountEmail || !accountPassword}
+              leftIcon={<UserPlus className="h-4 w-4" />}
+            >
+              {accountSubmitting ? "Création…" : "Créer le compte"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>

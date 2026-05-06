@@ -14,7 +14,7 @@ export function ModernLayout({ children, title }: ModernLayoutProps) {
   const { user } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  if (!user) return children
+  if (!user) return <>{children}</>
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "var(--background)", overflow: "hidden" }}>
