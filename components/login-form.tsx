@@ -174,13 +174,35 @@ export function LoginForm() {
             fontSize: 12,
             color: "var(--ink-3)",
           }}>
-            <div style={{ fontWeight: 500, marginBottom: 4, color: "var(--ink-2)" }}>Comptes de test</div>
-            <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11.5 }}>
-              admin@syndic.com / admin123
-            </div>
-            <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11.5 }}>
-              user@syndic.com / user123
-            </div>
+            <div style={{ fontWeight: 500, marginBottom: 6, color: "var(--ink-2)" }}>Comptes de test</div>
+            {[
+              { label: "Super Admin", email: "superadmin@syndic.ma", password: "SuperAdmin2026!" },
+              { label: "Admin",       email: "admin@syndic.com",      password: "Admin2026!" },
+              { label: "Utilisateur", email: "user@syndic.com",       password: "user123" },
+            ].map(({ label, email: e, password: p }) => (
+              <div
+                key={e}
+                onClick={() => { setEmail(e); setPassword(p) }}
+                style={{
+                  fontFamily: "var(--font-mono), monospace",
+                  fontSize: 11,
+                  padding: "4px 6px",
+                  borderRadius: 5,
+                  cursor: "pointer",
+                  marginBottom: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 0.1s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--line-2)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <span style={{ color: "var(--ink-4)", minWidth: 72, fontSize: 10.5, fontFamily: "inherit", fontWeight: 500 }}>{label}</span>
+                <span>{e} / {p}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: 10.5, color: "var(--ink-4)", marginTop: 4 }}>Cliquez pour remplir automatiquement</div>
           </div>
         </div>
       </div>
