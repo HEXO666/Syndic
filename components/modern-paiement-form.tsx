@@ -436,78 +436,62 @@ export function ModernPaiementForm({ paiement, coproprietaireId, onSuccess, onCa
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Single copro search — bloc/immeuble/apt filled automatically */}
+          <div className="space-y-3">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Bloc <span className="text-red-500">*</span>
-              </Label>
-              <Select value={selectedBlocId} onValueChange={handleBlocChange}>
-                <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Sélectionnez un bloc" />
-                </SelectTrigger>
-                <SelectContent>
-                  {blocs.map((bloc) => (
-                    <SelectItem key={bloc.id} value={bloc.id}>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        {bloc.nom}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.bloc && <p className="text-sm text-red-600 dark:text-red-400">{errors.bloc}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Immeuble <span className="text-red-500">*</span>
-              </Label>
-              <Select value={selectedImmeubleId} onValueChange={handleImmeubleChange} disabled={!selectedBlocId}>
-                <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Sélectionnez un immeuble" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableImmeubles.map((immeuble) => (
-                    <SelectItem key={immeuble.id} value={immeuble.id}>
-                      <div className="flex items-center gap-2">
-                        <Home className="h-4 w-4" />
-                        {immeuble.nom}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.immeuble && <p className="text-sm text-red-600 dark:text-red-400">{errors.immeuble}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Appartement <span className="text-red-500">*</span>
+                Copropriétaire <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.coproprietaireId}
-                onValueChange={handleAppartementChange}
-                disabled={!availableAppartements.length}
+                onValueChange={(id) => {
+                  configureFromCopro(id)
+                  clearError("coproprietaireId")
+                }}
               >
                 <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Sélectionnez un appartement" />
+                  <SelectValue placeholder="Rechercher un copropriétaire par nom…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableAppartements.map((option) => (
-                    <SelectItem key={option.coproprietaireId} value={option.coproprietaireId}>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        {option.label}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {[...coproprietaires]
+                    .sort((a, b) => a.nom.localeCompare(b.nom))
+                    .map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 flex-shrink-0" />
+                          <span>
+                            <span className="font-medium">{c.prenom} {c.nom}</span>
+                            <span className="ml-2 text-slate-400 text-xs">
+                              {c.bloque} · {c.immeuble} · Apt {c.numeroAppartement}
+                            </span>
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {errors.coproprietaireId && (
                 <p className="text-sm text-red-600 dark:text-red-400">{errors.coproprietaireId}</p>
               )}
             </div>
+
+            {/* Auto-filled location info */}
+            {selectedCoproprietaire && (
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-300">
+                  <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                  {selectedCoproprietaire.bloque}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-300">
+                  <Home className="h-3.5 w-3.5 text-slate-400" />
+                  {selectedCoproprietaire.immeuble}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-300">
+                  <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                  Apt {selectedCoproprietaire.numeroAppartement}
+                </span>
+              </div>
+            )}
           </div>
 
           {selectedCoproprietaire && (
