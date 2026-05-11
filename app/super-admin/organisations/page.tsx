@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Globe, Plus, Building2, Power, PowerOff, Shield,
+  Globe, Plus, Building2, Power, PowerOff, Shield, Eye, EyeOff,
 } from "lucide-react"
 
 type Org = {
@@ -47,7 +47,9 @@ export default function SuperAdminOrgsPage() {
 
   const [form, setForm] = useState({
     nom: "", email: "", telephone: "", adresse: "", plan: "basic",
+    adminNom: "", adminEmail: "", adminPassword: "",
   })
+  const [showPass, setShowPass] = useState(false)
 
   const supabase = getSupabaseClient()
 
@@ -75,17 +77,32 @@ export default function SuperAdminOrgsPage() {
   }
 
   const createOrg = async () => {
-    if (!form.nom.trim()) return
+    if (!form.nom.trim() || !form.adminEmail.trim() || !form.adminPassword.trim()) return
     setSaving("new")
-    const { data } = await supabase
-      .from("organisations")
-      .insert({ nom: form.nom, email: form.email || null, telephone: form.telephone || null, adresse: form.adresse || null, plan: form.plan, status: "active" })
-      .select()
-      .single()
-    if (data) setOrgs((prev) => [data as Org, ...prev])
-    setForm({ nom: "", email: "", telephone: "", adresse: "", plan: "basic" })
-    setOpen(false)
-    setSaving(null)
+    try {
+      const res = await fetch("/api/super-admin/create-org", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nom: form.nom,
+          email: form.email || null,
+          telephone: form.telephone || null,
+          adresse: form.adresse || null,
+          plan: form.plan,
+          adminNom: form.adminNom || "Administrateur",
+          adminEmail: form.adminEmail,
+          adminPassword: form.adminPassword,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.org) {
+        setOrgs((prev) => [json.org as Org, ...prev])
+        setForm({ nom: "", email: "", telephone: "", adresse: "", plan: "basic", adminNom: "", adminEmail: "", adminPassword: "" })
+        setOpen(false)
+      }
+    } finally {
+      setSaving(null)
+    }
   }
 
   if (isLoading) {
@@ -133,22 +150,27 @@ export default function SuperAdminOrgsPage() {
               <DialogHeader>
                 <DialogTitle>Créer une organisation</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto pr-1">
+
+                {/* Org info */}
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Organisation</p>
                 <div className="space-y-1.5">
                   <Label>Nom *</Label>
                   <Input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="Résidence Al Mansour" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Email</Label>
+                  <Label>Email de contact</Label>
                   <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="contact@syndic.ma" type="email" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Téléphone</Label>
-                  <Input value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} placeholder="+212 6XX XXX XXX" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Adresse</Label>
-                  <Input value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} placeholder="Casablanca, Maroc" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Téléphone</Label>
+                    <Input value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} placeholder="+212 6XX XXX XXX" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Adresse</Label>
+                    <Input value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} placeholder="Casablanca" />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Plan</Label>
@@ -168,7 +190,47 @@ export default function SuperAdminOrgsPage() {
                     ))}
                   </div>
                 </div>
-                <Button className="w-full" loading={saving === "new"} onClick={createOrg}>
+
+                {/* Divider */}
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Compte administrateur</p>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label>Nom de l'administrateur</Label>
+                      <Input value={form.adminNom} onChange={(e) => setForm({ ...form, adminNom: e.target.value })} placeholder="Mohamed Alami" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Email *</Label>
+                      <Input value={form.adminEmail} onChange={(e) => setForm({ ...form, adminEmail: e.target.value })} placeholder="admin@residence.ma" type="email" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Mot de passe *</Label>
+                      <div className="relative">
+                        <Input
+                          type={showPass ? "text" : "password"}
+                          value={form.adminPassword}
+                          onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
+                          placeholder="••••••••"
+                          className="pr-9"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPass(!showPass)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full"
+                  loading={saving === "new"}
+                  disabled={!form.nom.trim() || !form.adminEmail.trim() || !form.adminPassword.trim()}
+                  onClick={createOrg}
+                >
                   Créer l'organisation
                 </Button>
               </div>
