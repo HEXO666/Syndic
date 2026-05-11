@@ -57,6 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Safety: never keep isLoading stuck forever (network timeout, etc.)
+    const safetyTimer = setTimeout(() => setIsLoading(false), 8000)
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const { data: profile } = await supabase
@@ -72,6 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await loadUsers()
         }
       }
+      clearTimeout(safetyTimer)
+      setIsLoading(false)
+    }).catch(() => {
+      clearTimeout(safetyTimer)
       setIsLoading(false)
     })
 
