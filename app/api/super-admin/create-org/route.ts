@@ -17,10 +17,14 @@ export async function POST(req: Request) {
   try {
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (userError || !user) {
+      console.error("[create-org] Auth failed:", userError?.message)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
     if (!profile || profile.role !== "super_admin") {
+      console.error("[create-org] Forbidden: role =", profile?.role)
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -46,6 +50,7 @@ export async function POST(req: Request) {
       .single()
 
     if (orgError || !org) {
+      console.error("[create-org] Org insert failed:", orgError?.message)
       return NextResponse.json({ error: orgError?.message ?? "Failed to create org" }, { status: 400 })
     }
 
@@ -59,7 +64,7 @@ export async function POST(req: Request) {
     })
 
     if (createError || !created.user) {
-      // Roll back org if user creation fails
+      console.error("[create-org] Auth user creation failed:", createError?.message)
       await admin.from("organisations").delete().eq("id", org.id)
       return NextResponse.json({ error: createError?.message ?? "Failed to create admin user" }, { status: 400 })
     }

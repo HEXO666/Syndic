@@ -44,6 +44,7 @@ export default function SuperAdminOrgsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     nom: "", email: "", telephone: "", adresse: "", plan: "basic",
@@ -79,6 +80,7 @@ export default function SuperAdminOrgsPage() {
   const createOrg = async () => {
     if (!form.nom.trim() || !form.adminEmail.trim() || !form.adminPassword.trim()) return
     setSaving("new")
+    setCreateError(null)
     try {
       const res = await fetch("/api/super-admin/create-org", {
         method: "POST",
@@ -94,12 +96,17 @@ export default function SuperAdminOrgsPage() {
           adminPassword: form.adminPassword,
         }),
       })
-      const json = await res.json()
+      const json = await res.json() as { org?: Org; error?: string }
       if (res.ok && json.org) {
         setOrgs((prev) => [json.org as Org, ...prev])
         setForm({ nom: "", email: "", telephone: "", adresse: "", plan: "basic", adminNom: "", adminEmail: "", adminPassword: "" })
+        setCreateError(null)
         setOpen(false)
+      } else {
+        setCreateError(json.error ?? `Erreur ${res.status}`)
       }
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "Erreur réseau")
     } finally {
       setSaving(null)
     }
@@ -142,7 +149,7 @@ export default function SuperAdminOrgsPage() {
             </div>
           </div>
 
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setCreateError(null) }}>
             <DialogTrigger asChild>
               <Button leftIcon={<Plus className="h-4 w-4" />}>Nouvelle organisation</Button>
             </DialogTrigger>
@@ -224,6 +231,12 @@ export default function SuperAdminOrgsPage() {
                     </div>
                   </div>
                 </div>
+
+                {createError && (
+                  <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    {createError}
+                  </div>
+                )}
 
                 <Button
                   className="w-full"
