@@ -108,7 +108,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    setUser(null)
+    setUsers([])
     await supabase.auth.signOut()
+    window.location.href = "/"
   }
 
   const addUser = async (userData: { name: string; email: string; role: UserRole; password: string }) => {
