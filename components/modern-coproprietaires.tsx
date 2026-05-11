@@ -9,35 +9,31 @@ import { Button } from "@/components/ui/button-enhanced"
 import { Input } from "@/components/ui/input-enhanced"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { ModernCoproprietaireForm } from "@/components/modern-coproprietaire-form"
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Phone, 
-  MapPin, 
-  Building, 
-  Euro,
-  AlertTriangle,
-  CheckCircle,
-  Filter,
-  Download,
-  Eye,
-  UserPlus
+import {
+  Users, Search, Plus, Edit, Trash2, Phone, MapPin, Building, Euro,
+  AlertTriangle, CheckCircle, Filter, Download, Eye, UserPlus,
 } from "lucide-react"
 import type { Coproprietaire } from "@/lib/data-context"
 
 export default function ModernCoproprietaires() {
-  const { coproprietaires, deleteCoproprietaire } = useData()
+  const { coproprietaires, deleteCoproprietaire, getPaiementsByCoproprietaire } = useData()
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCoproprietaire, setSelectedCoproprietaire] = useState<Coproprietaire | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [filterStatus, setFilterStatus] = useState<"all" | "debtors" | "current">("all")
+
+  // delete confirm
+  const [deleteTarget, setDeleteTarget] = useState<Coproprietaire | null>(null)
+
+  // details dialog
+  const [detailsCopro, setDetailsCopro] = useState<Coproprietaire | null>(null)
 
   const permissions = useMemo(() => {
     if (!user) return null
@@ -54,257 +50,71 @@ export default function ModernCoproprietaires() {
   const [accountError, setAccountError] = useState<string | null>(null)
   const [accountSuccess, setAccountSuccess] = useState<string | null>(null)
 
-  const filteredCoproprietaires = coproprietaires.filter((coprop) => {
-    const matchesSearch = 
-      coprop.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coprop.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coprop.bloque.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coprop.immeuble.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coprop.numeroAppartement.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesFilter = 
-      filterStatus === "all" || 
-      (filterStatus === "debtors" && coprop.totalDettes > 0) ||
-      (filterStatus === "current" && coprop.totalDettes === 0)
-
+  const filteredCoproprietaires = coproprietaires.filter((c) => {
+    const matchesSearch =
+      c.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.bloque.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.immeuble.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.numeroAppartement.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesFilter =
+      filterStatus === "all" ||
+      (filterStatus === "debtors" && c.totalDettes > 0) ||
+      (filterStatus === "current" && c.totalDettes === 0)
     return matchesSearch && matchesFilter
   })
 
-  const handleEdit = (coprop: Coproprietaire) => {
-    setSelectedCoproprietaire(coprop)
-    setShowForm(true)
-  }
+  const handleEdit = (c: Coproprietaire) => { setSelectedCoproprietaire(c); setShowForm(true) }
+  const handleFormSuccess = () => { setShowForm(false); setSelectedCoproprietaire(null) }
 
-  const handleDelete = (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce copropriétaire ?")) {
-      deleteCoproprietaire(id)
-    }
-  }
-
-  const openCreateAccount = (coprop: Coproprietaire) => {
-    setAccountCopro(coprop)
-    setAccountEmail("")
-    setAccountPassword("")
-    setAccountError(null)
-    setAccountSuccess(null)
-    setAccountDialogOpen(true)
+  const openCreateAccount = (c: Coproprietaire) => {
+    setAccountCopro(c); setAccountEmail(""); setAccountPassword("")
+    setAccountError(null); setAccountSuccess(null); setAccountDialogOpen(true)
   }
 
   const submitCreateAccount = async () => {
     if (!accountCopro) return
-
-    setAccountSubmitting(true)
-    setAccountError(null)
-    setAccountSuccess(null)
-
+    setAccountSubmitting(true); setAccountError(null); setAccountSuccess(null)
     try {
       const res = await fetch("/api/admin/create-copro-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: accountEmail,
-          password: accountPassword,
+          email: accountEmail, password: accountPassword,
           coproprietaireId: accountCopro.id,
           coproprietaireCin: accountCopro.cin || undefined,
           coproprietaireName: `${accountCopro.prenom} ${accountCopro.nom}`,
         }),
       })
-
       const data = (await res.json()) as { error?: string; email?: string }
-      if (!res.ok) throw new Error(data.error || "Erreur lors de la création du compte")
-
+      if (!res.ok) throw new Error(data.error || "Erreur")
       setAccountSuccess(`Compte créé: ${data.email ?? accountEmail}`)
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Erreur inconnue"
-      setAccountError(message)
+      setAccountError(e instanceof Error ? e.message : "Erreur inconnue")
     } finally {
       setAccountSubmitting(false)
     }
   }
 
-  const handleFormSuccess = () => {
-    setShowForm(false)
-    setSelectedCoproprietaire(null)
-  }
-
-  const getStatusBadge = (coprop: Coproprietaire) => {
-    if (coprop.totalDettes === 0) {
-      return (
-        <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-200">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          À jour
-        </Badge>
-      )
-    }
-    return (
-      <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
+  const statusBadge = (c: Coproprietaire) =>
+    c.totalDettes === 0 ? (
+      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">
+        <CheckCircle className="h-3 w-3 mr-1" />À jour
+      </Badge>
+    ) : (
+      <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
         <AlertTriangle className="h-3 w-3 mr-1" />
-        {coprop.totalDettes} DH de dette
+        {c.totalDettes.toLocaleString()} DH de dette
       </Badge>
     )
+
+  const statutColor = (s: string) => {
+    if (s === "paye")   return "bg-emerald-100 text-emerald-700"
+    if (s === "partiel") return "bg-amber-100 text-amber-700"
+    return "bg-red-100 text-red-700"
   }
-
-  const CoproprietaireCard = ({ coprop }: { coprop: Coproprietaire }) => (
-    <Card variant="interactive" className="hover:shadow-lg transition-all duration-300 group">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[var(--ink)] rounded-[8px] flex items-center justify-center text-white font-semibold shadow-md">
-              {coprop.prenom.charAt(0)}{coprop.nom.charAt(0)}
-            </div>
-            <div>
-              <CardTitle className="text-lg">{coprop.prenom} {coprop.nom}</CardTitle>
-              <CardDescription className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {coprop.bloque} - {coprop.immeuble} - Apt {coprop.numeroAppartement}
-              </CardDescription>
-            </div>
-          </div>
-          {getStatusBadge(coprop)}
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <Phone className="h-4 w-4" />
-            <span>{coprop.telephone}</span>
-            {coprop.telephoneEtranger && (
-              <>
-                <span>•</span>
-                <span>{coprop.telephoneEtranger}</span>
-              </>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <Building className="h-4 w-4" />
-            <span>Titre foncier: {coprop.titreFoncier}</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <Euro className="h-4 w-4" />
-            <span>Cotisation: {coprop.montantAnnuel} DH/an</span>
-          </div>
-
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleEdit(coprop)}
-              leftIcon={<Edit className="h-3 w-3" />}
-            >
-              Modifier
-            </Button>
-            {canCreateCoproAccounts && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => openCreateAccount(coprop)}
-                leftIcon={<UserPlus className="h-3 w-3" />}
-              >
-                Créer compte
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              leftIcon={<Eye className="h-3 w-3" />}
-            >
-              Détails
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDelete(coprop.id)}
-              leftIcon={<Trash2 className="h-3 w-3" />}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              Supprimer
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  const CoproprietaireListItem = ({ coprop }: { coprop: Coproprietaire }) => (
-    <Card  className="hover:shadow-md transition-all duration-200">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-10 h-10 bg-[var(--ink)] rounded-[7px] flex items-center justify-center text-white font-semibold">
-              {coprop.prenom.charAt(0)}{coprop.nom.charAt(0)}
-            </div>
-            
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">
-                  {coprop.prenom} {coprop.nom}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  CIN: {coprop.cin}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {coprop.bloque} - {coprop.immeuble}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Apt {coprop.numeroAppartement}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {coprop.telephone}
-                </p>
-                {coprop.telephoneEtranger && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {coprop.telephoneEtranger}
-                  </p>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {getStatusBadge(coprop)}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleEdit(coprop)}
-              leftIcon={<Edit className="h-3 w-3" />}
-            >
-              Modifier
-            </Button>
-            {canCreateCoproAccounts && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => openCreateAccount(coprop)}
-                leftIcon={<UserPlus className="h-3 w-3" />}
-              >
-                Créer compte
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDelete(coprop.id)}
-              leftIcon={<Trash2 className="h-3 w-3" />}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              Supprimer
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+  const statutLabel = (s: string) =>
+    s === "paye" ? "Payé" : s === "partiel" ? "Partiel" : "Impayé"
 
   if (showForm) {
     return (
@@ -312,10 +122,7 @@ export default function ModernCoproprietaires() {
         <ModernCoproprietaireForm
           coproprietaire={selectedCoproprietaire}
           onSuccess={handleFormSuccess}
-          onCancel={() => {
-            setShowForm(false)
-            setSelectedCoproprietaire(null)
-          }}
+          onCancel={() => { setShowForm(false); setSelectedCoproprietaire(null) }}
         />
       </div>
     )
@@ -323,254 +130,284 @@ export default function ModernCoproprietaires() {
 
   return (
     <div className="p-6 space-y-6 bg-[var(--background)] min-h-screen">
+
+      {/* ── Créer compte dialog ───────────────────────────────────── */}
       <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Créer un compte copropriétaire</DialogTitle>
             <DialogDescription>
-              {accountCopro
-                ? `Pour ${accountCopro.prenom} ${accountCopro.nom} (CIN: ${accountCopro.cin || "—"})`
-                : ""}
+              {accountCopro ? `Pour ${accountCopro.prenom} ${accountCopro.nom} (CIN: ${accountCopro.cin || "—"})` : ""}
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="copro-account-email">Email</Label>
-              <input
-                id="copro-account-email"
-                type="email"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={accountEmail}
-                onChange={(e) => setAccountEmail(e.target.value)}
-                placeholder="coproprietaire@example.com"
-              />
+              <Label>Email</Label>
+              <input type="email" className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} placeholder="copro@example.com" />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="copro-account-password">Mot de passe temporaire</Label>
-              <input
-                id="copro-account-password"
-                type="text"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={accountPassword}
-                onChange={(e) => setAccountPassword(e.target.value)}
-                placeholder="ex: copro123"
-              />
+              <Label>Mot de passe temporaire</Label>
+              <input type="text" className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={accountPassword} onChange={(e) => setAccountPassword(e.target.value)} placeholder="ex: copro123" />
             </div>
-
-            {accountError && (
-              <div className="text-sm text-red-600">{accountError}</div>
-            )}
-            {accountSuccess && (
-              <div className="text-sm text-emerald-600">{accountSuccess}</div>
-            )}
+            {accountError   && <p className="text-sm text-red-600">{accountError}</p>}
+            {accountSuccess && <p className="text-sm text-emerald-600">{accountSuccess}</p>}
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setAccountDialogOpen(false)}
-              disabled={accountSubmitting}
-            >
-              Fermer
-            </Button>
-            <Button
-              variant="default"
-              onClick={submitCreateAccount}
-              disabled={accountSubmitting || !accountEmail || !accountPassword}
-              leftIcon={<UserPlus className="h-4 w-4" />}
-            >
+            <Button variant="outline" onClick={() => setAccountDialogOpen(false)} disabled={accountSubmitting}>Fermer</Button>
+            <Button onClick={submitCreateAccount} disabled={accountSubmitting || !accountEmail || !accountPassword}
+              leftIcon={<UserPlus className="h-4 w-4" />}>
               {accountSubmitting ? "Création…" : "Créer le compte"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* En-tête */}
+      {/* ── Delete confirm dialog ─────────────────────────────────── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le copropriétaire</AlertDialogTitle>
+            <AlertDialogDescription>
+              Supprimer <strong>{deleteTarget?.prenom} {deleteTarget?.nom}</strong> ? Cette action est irréversible et supprimera tous ses paiements associés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => { if (deleteTarget) { deleteCoproprietaire(deleteTarget.id); setDeleteTarget(null) } }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Details dialog ────────────────────────────────────────── */}
+      <Dialog open={!!detailsCopro} onOpenChange={(o) => { if (!o) setDetailsCopro(null) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {detailsCopro?.prenom} {detailsCopro?.nom}
+            </DialogTitle>
+            <DialogDescription>
+              {detailsCopro?.bloque} · {detailsCopro?.immeuble} · Apt {detailsCopro?.numeroAppartement}
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailsCopro && (() => {
+            const paiements = getPaiementsByCoproprietaire(detailsCopro.id)
+              .sort((a, b) => b.annee.localeCompare(a.annee))
+            return (
+              <div className="space-y-4">
+                {/* Info */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-400 uppercase font-medium">Contact</p>
+                    <p className="text-slate-700 dark:text-slate-300">{detailsCopro.telephone || "—"}</p>
+                    {detailsCopro.telephoneEtranger && <p className="text-slate-500">{detailsCopro.telephoneEtranger}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-400 uppercase font-medium">CIN</p>
+                    <p className="text-slate-700 dark:text-slate-300">{detailsCopro.cin || "—"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-400 uppercase font-medium">Cotisation</p>
+                    <p className="text-slate-700 dark:text-slate-300 font-semibold">{detailsCopro.montantAnnuel.toLocaleString()} DH/an</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-400 uppercase font-medium">Total dettes</p>
+                    <p className={`font-semibold ${detailsCopro.totalDettes > 0 ? "text-red-600" : "text-emerald-600"}`}>
+                      {detailsCopro.totalDettes > 0 ? `${detailsCopro.totalDettes.toLocaleString()} DH` : "À jour"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Paiements */}
+                <div>
+                  <p className="text-xs text-slate-400 uppercase font-medium mb-2">Historique des paiements</p>
+                  {paiements.length === 0 ? (
+                    <div className="text-center py-6 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                      <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                      <p className="text-sm text-red-600 font-medium">Aucun paiement enregistré</p>
+                      <p className="text-xs text-red-500 mt-1">Cotisation annuelle de {detailsCopro.montantAnnuel.toLocaleString()} DH due</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1 max-h-52 overflow-y-auto">
+                      {paiements.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{p.annee}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${statutColor(p.statut)}`}>
+                              {statutLabel(p.statut)}
+                            </span>
+                          </div>
+                          <span className="font-semibold text-slate-900 dark:text-white">{p.montant.toLocaleString()} DH</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleEdit(detailsCopro!)} leftIcon={<Edit className="h-4 w-4" />}>Modifier</Button>
+            <Button onClick={() => setDetailsCopro(null)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-indigo-800 dark:from-white dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
             Copropriétaires
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Gestion des propriétaires et de leurs informations
-          </p>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">Gestion des propriétaires et de leurs informations</p>
         </div>
-        <Button
-          variant="default"
-          onClick={() => setShowForm(true)}
-          leftIcon={<Plus className="h-4 w-4" />}
-          className="shadow-lg"
-        >
+        <Button onClick={() => setShowForm(true)} leftIcon={<Plus className="h-4 w-4" />} className="shadow-lg">
           Nouveau copropriétaire
         </Button>
       </div>
 
-      {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card >
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
-                <Users className="h-5 w-5" />
+      {/* ── Stats ────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Total", value: coproprietaires.length, icon: Users, color: "blue" },
+          { label: "À jour", value: coproprietaires.filter(c => c.totalDettes === 0).length, icon: CheckCircle, color: "emerald" },
+          { label: "Débiteurs", value: coproprietaires.filter(c => c.totalDettes > 0).length, icon: AlertTriangle, color: "red" },
+          { label: "DH de dettes", value: coproprietaires.reduce((s, c) => s + c.totalDettes, 0).toLocaleString(), icon: Euro, color: "amber" },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <Card key={label}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 bg-${color}-100 dark:bg-${color}-900 text-${color}-600 rounded-lg flex items-center justify-center`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{label}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {coproprietaires.length}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card >
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {coproprietaires.filter(c => c.totalDettes === 0).length}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">À jour</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card >
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {coproprietaires.filter(c => c.totalDettes > 0).length}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Débiteurs</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card >
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center">
-                <Euro className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {coproprietaires.reduce((sum, c) => sum + c.totalDettes, 0).toLocaleString()}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">DH de dettes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Filtres et recherche */}
-      <Card >
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
+      {/* ── Filters ──────────────────────────────────────────────── */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
               <div className="flex-1 max-w-md">
-                <Input
-                  variant="modern"
-                  leftIcon={<Search className="h-4 w-4" />}
+                <Input variant="modern" leftIcon={<Search className="h-4 w-4" />}
                   placeholder="Rechercher par nom, bloc, immeuble..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                  value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
-              
               <div className="flex gap-2">
-                <Button
-                  variant={filterStatus === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus("all")}
-                >
-                  Tous
-                </Button>
-                <Button
-                  variant={filterStatus === "current" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus("current")}
-                >
-                  À jour
-                </Button>
-                <Button
-                  variant={filterStatus === "debtors" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus("debtors")}
-                >
-                  Débiteurs
-                </Button>
+                {(["all","current","debtors"] as const).map((f) => (
+                  <Button key={f} variant={filterStatus === f ? "default" : "outline"} size="sm"
+                    onClick={() => setFilterStatus(f)}>
+                    {f === "all" ? "Tous" : f === "current" ? "À jour" : "Débiteurs"}
+                  </Button>
+                ))}
               </div>
             </div>
-            
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<Filter className="h-4 w-4" />}
-              >
-                Filtres
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<Download className="h-4 w-4" />}
-              >
-                Exporter
-              </Button>
+              <Button variant="outline" size="sm" leftIcon={<Filter className="h-4 w-4" />}>Filtres</Button>
+              <Button variant="outline" size="sm" leftIcon={<Download className="h-4 w-4" />}>Exporter</Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Liste des copropriétaires */}
-      <div className="space-y-4">
-        {viewMode === "grid" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredCoproprietaires.map((coprop) => (
-              <CoproprietaireCard key={coprop.id} coprop={coprop} />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredCoproprietaires.map((coprop) => (
-              <CoproprietaireListItem key={coprop.id} coprop={coprop} />
-            ))}
-          </div>
-        )}
-        
-        {filteredCoproprietaires.length === 0 && (
-          <Card >
-            <CardContent className="p-8 text-center">
-              <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                Aucun copropriétaire trouvé
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-4">
-                {searchTerm ? "Aucun résultat pour votre recherche" : "Commencez par ajouter des copropriétaires"}
-              </p>
-              {!searchTerm && (
-                <Button
-                  variant="default"
-                  onClick={() => setShowForm(true)}
-                  leftIcon={<Plus className="h-4 w-4" />}
+      {/* ── Cards grid ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+        {filteredCoproprietaires.map((coprop) => (
+          <Card key={coprop.id} variant="interactive" className="hover:shadow-lg transition-all duration-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 bg-[var(--ink)] rounded-[8px] flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    {coprop.prenom.charAt(0)}{coprop.nom.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle className="text-base truncate">{coprop.prenom} {coprop.nom}</CardTitle>
+                    <CardDescription className="flex items-center gap-1 text-xs truncate">
+                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      {coprop.bloque} · {coprop.immeuble} · Apt {coprop.numeroAppartement}
+                    </CardDescription>
+                  </div>
+                </div>
+                {/* Delete icon in top-right */}
+                <button
+                  onClick={() => setDeleteTarget(coprop)}
+                  className="flex-shrink-0 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                  title="Supprimer"
                 >
-                  Ajouter le premier copropriétaire
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="mt-2">{statusBadge(coprop)}</div>
+            </CardHeader>
+
+            <CardContent className="pt-0 space-y-2">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>{coprop.telephone || "—"}</span>
+                {coprop.telephoneEtranger && <><span>·</span><span>{coprop.telephoneEtranger}</span></>}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <Building className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>Titre foncier: {coprop.titreFoncier || "—"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <Euro className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>Cotisation: {coprop.montantAnnuel.toLocaleString()} DH/an</span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => handleEdit(coprop)}
+                  leftIcon={<Edit className="h-3 w-3" />}>
+                  Modifier
                 </Button>
-              )}
+                {canCreateCoproAccounts && (
+                  <Button variant="outline" size="sm" onClick={() => openCreateAccount(coprop)}
+                    leftIcon={<UserPlus className="h-3 w-3" />}>
+                    Compte
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => setDetailsCopro(coprop)}
+                  leftIcon={<Eye className="h-3 w-3" />}>
+                  Détails
+                </Button>
+              </div>
             </CardContent>
           </Card>
+        ))}
+
+        {filteredCoproprietaires.length === 0 && (
+          <div className="col-span-full">
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Aucun copropriétaire trouvé</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  {searchTerm ? "Aucun résultat pour votre recherche" : "Commencez par ajouter des copropriétaires"}
+                </p>
+                {!searchTerm && (
+                  <Button onClick={() => setShowForm(true)} leftIcon={<Plus className="h-4 w-4" />}>
+                    Ajouter le premier copropriétaire
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </div>
