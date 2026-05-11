@@ -6,7 +6,7 @@ import { getSupabaseClient } from "./supabase/client"
 import type { Profile } from "./supabase/types"
 import { syncPermissionsFromDb } from "./permissions"
 
-export type UserRole = "admin" | "user" | "copro" | "super_admin"
+export type UserRole = "admin" | "user" | "copro" | "super_admin" | "syndic"
 
 export interface User {
   id: string
@@ -14,6 +14,7 @@ export interface User {
   name: string
   role: UserRole
   organisation_id?: string | null
+  assignedImmeubleIds?: string[]
 }
 
 interface AuthContextType {
@@ -29,13 +30,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-function profileToUser(p: Profile): User {
-  return { id: p.id, email: p.email, name: p.nom, role: p.role as UserRole, organisation_id: p.organisation_id }
+function profileToUser(p: Profile, assignedImmeubleIds?: string[]): User {
+  return { id: p.id, email: p.email, name: p.nom, role: p.role as UserRole, organisation_id: p.organisation_id, assignedImmeubleIds }
 }
 
 function applyProfileSideEffects(profile: Profile) {
-  // Seed localStorage permissions from DB so synchronous callers stay consistent.
   syncPermissionsFromDb(profile.id, profile.role, profile.permissions ?? {})
+}
+
+async function loadSyndicImmeubles(supabase: ReturnType<typeof getSupabaseClient>, userId: string): Promise<string[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any).from("syndic_immeubles").select("immeuble_id").eq("syndic_id", userId)
+  return (data as { immeuble_id: string }[] | null)?.map((r) => r.immeuble_id) ?? []
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -47,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUsers = async () => {
     const { data } = await supabase.from("profiles").select("*").order("nom")
-    if (data) setUsers((data as Profile[]).map(profileToUser))
+    if (data) setUsers((data as Profile[]).map((p) => profileToUser(p)))
   }
 
   useEffect(() => {
@@ -61,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profile) {
           const p = profile as Profile
           applyProfileSideEffects(p)
-          setUser(profileToUser(p))
+          const immeubleIds = p.role === "syndic" ? await loadSyndicImmeubles(supabase, p.id) : undefined
+          setUser(profileToUser(p, immeubleIds))
           await loadUsers()
         }
       }
@@ -80,7 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profile) {
           const p = profile as Profile
           applyProfileSideEffects(p)
-          setUser(profileToUser(p))
+          const immeubleIds = p.role === "syndic" ? await loadSyndicImmeubles(supabase, p.id) : undefined
+          setUser(profileToUser(p, immeubleIds))
           await loadUsers()
         }
       } else if (event === "SIGNED_OUT") {
@@ -119,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateUser = async (id: string, userData: Partial<User & { password?: string }>) => {
-    type ProfileUpdate = { nom?: string; role?: "admin" | "user" | "copro" | "super_admin" }
+    type ProfileUpdate = { nom?: string; role?: "admin" | "user" | "copro" | "super_admin" | "syndic" }
     const updates: ProfileUpdate = {}
     if (userData.name !== undefined) updates.nom = userData.name
     if (userData.role !== undefined) updates.role = userData.role

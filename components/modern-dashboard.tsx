@@ -2,11 +2,22 @@
 
 import { useState, useEffect } from "react"
 import { useData } from "@/lib/data-context"
+import { getSupabaseClient } from "@/lib/supabase/client"
 import {
   Building2, Users, Wrench, CreditCard, TrendingUp,
   AlertTriangle, CheckCircle, Calendar, Euro, FileText,
   Plus, ArrowUp, ArrowDown, ChevronRight,
 } from "lucide-react"
+
+type LogEntry = {
+  id: string
+  action: string
+  entity: string
+  details: string
+  created_at: string
+  user_id: string | null
+  profiles?: { nom: string } | null
+}
 
 /* ─── KPI Card ─── */
 interface KpiProps {
@@ -75,45 +86,64 @@ function Kpi({ label, value, unit, sub, delta, deltaDir, foot, Icon, tone = "def
   )
 }
 
-/* ─── Activity Feed ─── */
-const ACTIVITIES = [
-  { type: "pay",    who: "Fatima Zahra Bennani", what: "a effectué un paiement de", amt: "1 200 DH", when: "il y a 12 min", tag: "Espèces · 2025" },
-  { type: "create", who: "Youssef El Amrani",    what: "a ajouté un nouveau copropriétaire", amt: "Karim Tazi", when: "il y a 1 h", tag: "Imm. B · Apt 304" },
-  { type: "update", who: "Omar Idrissi",          what: "a mis à jour la fiche", amt: "Aïcha Berrada", when: "il y a 3 h", tag: "Téléphone" },
-  { type: "pay",    who: "Hamid Cherkaoui",       what: "paiement partiel", amt: "600 / 1 200 DH", when: "il y a 5 h", tag: "Chèque #4471" },
-  { type: "delete", who: "Youssef El Amrani",    what: "a archivé l'ouvrier", amt: "Mohamed Lahlou", when: "hier, 16:42", tag: "Sécurité" },
-  { type: "create", who: "Système",               what: "quitus généré pour la vente", amt: "Apt 207 · Bloc A", when: "hier, 11:08", tag: "Vente" },
-]
+/* ─── Activity Feed (live from action_history) ─── */
 
-const ACT_COLORS: Record<string, { bg: string; color: string }> = {
-  pay:    { bg: "#fff5dc", color: "#7a5400" },
-  create: { bg: "var(--good-soft)", color: "var(--good)" },
-  update: { bg: "var(--accent-blue-soft)", color: "var(--accent-blue-ink)" },
-  delete: { bg: "var(--bad-soft)", color: "var(--bad)" },
+const ACT_META: Record<string, { bg: string; color: string; Icon: React.ElementType; verb: string }> = {
+  CREATE: { bg: "var(--good-soft)", color: "var(--good)",             Icon: Plus,          verb: "a créé" },
+  UPDATE: { bg: "var(--accent-blue-soft)", color: "var(--accent-blue-ink)", Icon: CheckCircle, verb: "a modifié" },
+  DELETE: { bg: "var(--bad-soft)", color: "var(--bad)",               Icon: AlertTriangle, verb: "a supprimé" },
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1)  return "à l'instant"
+  if (m < 60) return `il y a ${m} min`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `il y a ${h} h`
+  const d = Math.floor(h / 24)
+  return d === 1 ? "hier" : `il y a ${d} j`
 }
 
 function ActivityFeed() {
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const supabase = getSupabaseClient()
+
+  useEffect(() => {
+    supabase
+      .from("action_history")
+      .select("id, action, entity, details, created_at, user_id, profiles(nom)")
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .then(({ data }) => { if (data) setLogs(data as unknown as LogEntry[]) })
+  }, [])
+
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px 10px" }}>
         <div>
           <div style={{ fontFamily: "var(--font-inter-tight), sans-serif", fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em" }}>
-            Activité récente
+            Journal d'activité
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>6 dernières actions</div>
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>10 dernières actions en temps réel</div>
         </div>
-        <span style={{ fontSize: 11.5, color: "var(--ink-3)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-          Voir tout <ChevronRight style={{ width: 11, height: 11 }} />
+        <span style={{ fontSize: 11.5, color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 4 }}>
+          <ChevronRight style={{ width: 11, height: 11 }} />
         </span>
       </div>
 
       <div>
-        {ACTIVITIES.map((a, i) => {
-          const colors = ACT_COLORS[a.type] ?? ACT_COLORS.create
-          const ActIcon = a.type === "pay" ? Euro : a.type === "create" ? Plus : a.type === "update" ? CheckCircle : AlertTriangle
+        {logs.length === 0 ? (
+          <div style={{ padding: "20px 18px", fontSize: 12.5, color: "var(--ink-3)", textAlign: "center" }}>
+            Aucune activité enregistrée.
+          </div>
+        ) : logs.map((log, i) => {
+          const meta = ACT_META[log.action] ?? ACT_META.CREATE
+          const ActIcon = meta.Icon
+          const who = log.profiles?.nom ?? "Système"
           return (
             <div
-              key={i}
+              key={log.id}
               style={{
                 display: "flex",
                 gap: 11,
@@ -125,26 +155,20 @@ function ActivityFeed() {
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               <div style={{
-                width: 26,
-                height: 26,
-                borderRadius: 7,
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: colors.bg,
-                color: colors.color,
+                width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: meta.bg, color: meta.color,
               }}>
                 <ActIcon style={{ width: 13, height: 13, strokeWidth: 2 }} />
               </div>
               <div style={{ fontSize: 12.5, lineHeight: 1.4, flex: 1, minWidth: 0 }}>
                 <span>
-                  <b style={{ fontWeight: 500 }}>{a.who}</b>{" "}
-                  <span style={{ color: "var(--ink-3)" }}>{a.what}</span>{" "}
-                  <b style={{ fontWeight: 500 }}>{a.amt}</b>
+                  <b style={{ fontWeight: 500 }}>{who}</b>{" "}
+                  <span style={{ color: "var(--ink-3)" }}>{meta.verb}</span>{" "}
+                  <b style={{ fontWeight: 500 }}>{log.entity}</b>
                 </span>
-                <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 1 }}>
-                  {a.tag} · {a.when}
+                <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {log.details} · {timeAgo(log.created_at)}
                 </div>
               </div>
             </div>

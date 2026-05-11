@@ -15,9 +15,9 @@ export default function Home() {
   useEffect(() => {
     if (isLoading) return
     if (!user) return
+    // copro and super_admin are handled by ModernLayout redirect
     if (user.role !== "user") return
     const permissions = loadUserPermissions(user.id, user.role)
-    // Typical copropriétaire: role=user and no management permission → redirect to portal.
     if (!permissions.manage_coproprietaires) {
       router.replace("/espace")
     }

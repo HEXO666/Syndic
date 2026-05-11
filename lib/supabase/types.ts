@@ -54,7 +54,7 @@ export type Database = {
           id: string
           nom: string
           email: string
-          role: "admin" | "user" | "copro" | "super_admin"
+          role: "admin" | "user" | "copro" | "super_admin" | "syndic"
           organisation_id: string | null
           permissions: Record<string, boolean>
           created_at: string
@@ -64,7 +64,7 @@ export type Database = {
           id: string
           nom: string
           email: string
-          role?: "admin" | "user" | "copro" | "super_admin"
+          role?: "admin" | "user" | "copro" | "super_admin" | "syndic"
           organisation_id?: string | null
           permissions?: Record<string, boolean>
           created_at?: string
@@ -74,7 +74,7 @@ export type Database = {
           id?: string
           nom?: string
           email?: string
-          role?: "admin" | "user" | "copro" | "super_admin"
+          role?: "admin" | "user" | "copro" | "super_admin" | "syndic"
           organisation_id?: string | null
           permissions?: Record<string, boolean>
           created_at?: string

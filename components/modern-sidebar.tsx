@@ -24,10 +24,11 @@ const NAV_MAIN = [
 ]
 
 const NAV_ADMIN = [
-  { id: "users", title: "Utilisateurs", href: "/utilisateurs", Icon: Crown },
+  { id: "users",     title: "Utilisateurs",      href: "/utilisateurs",  Icon: Crown },
+  { id: "syndics",   title: "Syndics",           href: "/syndics",       Icon: Building2 },
   { id: "add-copro", title: "Ajouter une copro", href: "/ajouter-copro", Icon: UserPlus },
-  { id: "perms", title: "Permissions",  href: "/permissions",  Icon: Shield },
-  { id: "rep",   title: "Rapports",     href: "/rapports",     Icon: FileText },
+  { id: "perms",     title: "Permissions",       href: "/permissions",   Icon: Shield },
+  { id: "rep",       title: "Rapports",          href: "/rapports",      Icon: FileText },
 ]
 
 const NAV_SUPER_ADMIN = [
@@ -245,7 +246,7 @@ export function ModernSidebar() {
         </>
       )}
 
-      {/* Admin / user nav */}
+      {/* Admin / user / syndic nav */}
       {user?.role !== "super_admin" && user?.role !== "copro" && (
         <>
           <SectionLabel>Gestion</SectionLabel>
@@ -341,6 +342,8 @@ export function ModernSidebar() {
               <><Crown style={{ width: 9, height: 9 }} /> Super Admin</>
             ) : user?.role === "admin" ? (
               <><Crown style={{ width: 9, height: 9 }} /> Administrateur</>
+            ) : user?.role === "syndic" ? (
+              <><Building2 style={{ width: 9, height: 9 }} /> Syndic</>
             ) : user?.role === "copro" ? (
               <><Shield style={{ width: 9, height: 9 }} /> Copropriétaire</>
             ) : (

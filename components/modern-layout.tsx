@@ -24,6 +24,7 @@ export function ModernLayout({ children, title }: ModernLayoutProps) {
     } else if (user.role === "super_admin" && !pathname.startsWith("/super-admin")) {
       router.replace("/super-admin/organisations")
     }
+    // syndics and users: no hard redirect — they see filtered data
   }, [user, pathname])
 
   if (!user) return <>{children}</>
