@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useData, type Paiement } from "@/lib/data-context"
+import { QuittancePDF } from "@/components/quittance-pdf"
 import {
   CreditCard,
   Search,
@@ -23,6 +24,7 @@ import {
   AlertTriangle,
   Clock,
   Filter,
+  FileDown,
 } from "lucide-react"
 
 const statusLabels: Record<Paiement["statut"], { label: string; badgeClass: string }> = {
@@ -367,6 +369,19 @@ export default function ModernPaiements() {
                           >
                             Modifier
                           </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="ghost" leftIcon={<FileDown className="h-3 w-3" />}>
+                                Quittance
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-sm">
+                              <DialogHeader>
+                                <DialogTitle>Quittance de paiement</DialogTitle>
+                              </DialogHeader>
+                              <QuittancePDF coproprietaireId={paiement.coproprietaireId} />
+                            </DialogContent>
+                          </Dialog>
                           <Button
                             size="sm"
                             variant="ghost"

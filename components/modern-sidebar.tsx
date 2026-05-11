@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard, Users, Building2, Wrench, CreditCard,
   FileText, History, Handshake, Crown, Shield, ChevronDown, UserPlus,
+  Globe, Settings,
 } from "lucide-react"
 
 const NAV_MAIN = [
@@ -27,6 +28,11 @@ const NAV_ADMIN = [
   { id: "add-copro", title: "Ajouter une copro", href: "/ajouter-copro", Icon: UserPlus },
   { id: "perms", title: "Permissions",  href: "/permissions",  Icon: Shield },
   { id: "rep",   title: "Rapports",     href: "/rapports",     Icon: FileText },
+]
+
+const NAV_SUPER_ADMIN = [
+  { id: "orgs",  title: "Organisations", href: "/super-admin/organisations", Icon: Globe },
+  { id: "plans", title: "Plans",         href: "/super-admin/plans",         Icon: Settings },
 ]
 
 function NavItem({
@@ -116,20 +122,28 @@ export function ModernSidebar() {
   useEffect(() => {
     if (!user) return
 
-    const mainHrefs = NAV_MAIN.filter((item) => {
-      if (item.href === "/coproprietaires") return canManageCoproprietaires
-      if (item.href === "/espace") return user.role === "user"
-      return true
-    }).map((i) => i.href)
+    let hrefs: string[] = []
 
-    const adminHrefs = user.role === "admin"
-      ? NAV_ADMIN.filter((item) => {
-        if (item.href === "/ajouter-copro") return canCreateCoproAccounts
+    if (user.role === "super_admin") {
+      hrefs = NAV_SUPER_ADMIN.map((i) => i.href)
+    } else if (user.role === "copro") {
+      hrefs = ["/espace"]
+    } else {
+      const mainHrefs = NAV_MAIN.filter((item) => {
+        if (item.href === "/coproprietaires") return canManageCoproprietaires
+        if (item.href === "/espace") return false
         return true
       }).map((i) => i.href)
-      : []
 
-    const hrefs = Array.from(new Set([...mainHrefs, ...adminHrefs]))
+      const adminHrefs = user.role === "admin"
+        ? NAV_ADMIN.filter((item) => {
+          if (item.href === "/ajouter-copro") return canCreateCoproAccounts
+          return true
+        }).map((i) => i.href)
+        : []
+
+      hrefs = Array.from(new Set([...mainHrefs, ...adminHrefs]))
+    }
 
     const id = window.setTimeout(() => {
       hrefs.forEach((href) => {
@@ -209,48 +223,68 @@ export function ModernSidebar() {
         </div>
       </div>
 
-      {/* Main nav */}
-      <SectionLabel>Gestion</SectionLabel>
-      <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        {NAV_MAIN.filter((item) => {
-          if (item.href === "/coproprietaires") return canManageCoproprietaires
-          if (item.href === "/espace") return user?.role === "user"
-          return true
-        }).map((item) => {
-          let badge: string | undefined
-          if (item.showBlocBadge && blocNotifications > 0) badge = blocNotifications.toString()
-          if (item.showPaieBadge && paiements.length > 0) badge = paiements.length.toString()
-          return (
-            <NavItem
-              key={item.href}
-              href={item.href}
-              Icon={item.Icon}
-              title={item.title}
-              badge={badge}
-              active={isActive(item.href)}
-            />
-          )
-        })}
-      </nav>
-
-      {/* Admin nav */}
-      {user?.role === "admin" && (
+      {/* Super admin nav */}
+      {user?.role === "super_admin" && (
         <>
-          <SectionLabel>Administration</SectionLabel>
+          <SectionLabel>Plateforme</SectionLabel>
           <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {NAV_ADMIN.filter((item) => {
-              if (item.href === "/ajouter-copro") return canCreateCoproAccounts
-              return true
-            }).map((item) => (
-              <NavItem
-                key={item.href}
-                href={item.href}
-                Icon={item.Icon}
-                title={item.title}
-                active={isActive(item.href)}
-              />
+            {NAV_SUPER_ADMIN.map((item) => (
+              <NavItem key={item.href} href={item.href} Icon={item.Icon} title={item.title} active={isActive(item.href)} />
             ))}
           </nav>
+        </>
+      )}
+
+      {/* Copro nav */}
+      {user?.role === "copro" && (
+        <>
+          <SectionLabel>Mon compte</SectionLabel>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <NavItem href="/espace" Icon={Shield} title="Ma situation" active={isActive("/espace")} />
+          </nav>
+        </>
+      )}
+
+      {/* Admin / user nav */}
+      {user?.role !== "super_admin" && user?.role !== "copro" && (
+        <>
+          <SectionLabel>Gestion</SectionLabel>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {NAV_MAIN.filter((item) => {
+              if (item.href === "/coproprietaires") return canManageCoproprietaires
+              if (item.href === "/espace") return false
+              return true
+            }).map((item) => {
+              let badge: string | undefined
+              if (item.showBlocBadge && blocNotifications > 0) badge = blocNotifications.toString()
+              if (item.showPaieBadge && paiements.length > 0) badge = paiements.length.toString()
+              return (
+                <NavItem
+                  key={item.href}
+                  href={item.href}
+                  Icon={item.Icon}
+                  title={item.title}
+                  badge={badge}
+                  active={isActive(item.href)}
+                />
+              )
+            })}
+          </nav>
+
+          {/* Admin section */}
+          {user?.role === "admin" && (
+            <>
+              <SectionLabel>Administration</SectionLabel>
+              <nav style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {NAV_ADMIN.filter((item) => {
+                  if (item.href === "/ajouter-copro") return canCreateCoproAccounts
+                  return true
+                }).map((item) => (
+                  <NavItem key={item.href} href={item.href} Icon={item.Icon} title={item.title} active={isActive(item.href)} />
+                ))}
+              </nav>
+            </>
+          )}
         </>
       )}
 
@@ -303,8 +337,12 @@ export function ModernSidebar() {
             gap: 4,
             marginTop: 1,
           }}>
-            {user?.role === "admin" ? (
+            {user?.role === "super_admin" ? (
+              <><Crown style={{ width: 9, height: 9 }} /> Super Admin</>
+            ) : user?.role === "admin" ? (
               <><Crown style={{ width: 9, height: 9 }} /> Administrateur</>
+            ) : user?.role === "copro" ? (
+              <><Shield style={{ width: 9, height: 9 }} /> Copropriétaire</>
             ) : (
               <><Shield style={{ width: 9, height: 9 }} /> Utilisateur</>
             )}

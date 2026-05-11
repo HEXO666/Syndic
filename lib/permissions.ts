@@ -16,11 +16,11 @@ function storageKeyForUser(userId: string) {
   return `syndic-permissions:${userId}`
 }
 
-export function getDefaultPermissionsForRole(role: "admin" | "user"): Permissions {
-  return role === "admin" ? DEFAULT_PERMISSIONS_ADMIN : DEFAULT_PERMISSIONS_USER
+export function getDefaultPermissionsForRole(role: string): Permissions {
+  return role === "admin" || role === "super_admin" ? DEFAULT_PERMISSIONS_ADMIN : DEFAULT_PERMISSIONS_USER
 }
 
-export function loadUserPermissions(userId: string, role: "admin" | "user"): Permissions {
+export function loadUserPermissions(userId: string, role: string): Permissions {
   if (typeof window === "undefined") return getDefaultPermissionsForRole(role)
 
   const raw = window.localStorage.getItem(storageKeyForUser(userId))
@@ -42,9 +42,7 @@ export function saveUserPermissions(userId: string, permissions: Permissions) {
   window.localStorage.setItem(storageKeyForUser(userId), JSON.stringify(permissions))
 }
 
-// Called on login to seed localStorage from the database value, so all
-// synchronous callers of loadUserPermissions() get DB-authoritative data.
-export function syncPermissionsFromDb(userId: string, role: "admin" | "user", dbPermissions: Record<string, boolean>) {
+export function syncPermissionsFromDb(userId: string, role: string, dbPermissions: Record<string, boolean>) {
   if (typeof window === "undefined") return
   if (Object.keys(dbPermissions).length === 0) return
   const merged: Permissions = {

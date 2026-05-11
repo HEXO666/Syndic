@@ -12,6 +12,9 @@ export type Database = {
           telephone: string | null
           email: string | null
           logo_url: string | null
+          plan: string
+          status: string
+          plan_expires_at: string | null
           created_at: string
           updated_at: string
         }
@@ -23,6 +26,9 @@ export type Database = {
           telephone?: string | null
           email?: string | null
           logo_url?: string | null
+          plan?: string
+          status?: string
+          plan_expires_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -34,6 +40,9 @@ export type Database = {
           telephone?: string | null
           email?: string | null
           logo_url?: string | null
+          plan?: string
+          status?: string
+          plan_expires_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -45,7 +54,7 @@ export type Database = {
           id: string
           nom: string
           email: string
-          role: "admin" | "user"
+          role: "admin" | "user" | "copro" | "super_admin"
           organisation_id: string | null
           permissions: Record<string, boolean>
           created_at: string
@@ -55,7 +64,7 @@ export type Database = {
           id: string
           nom: string
           email: string
-          role?: "admin" | "user"
+          role?: "admin" | "user" | "copro" | "super_admin"
           organisation_id?: string | null
           permissions?: Record<string, boolean>
           created_at?: string
@@ -65,7 +74,7 @@ export type Database = {
           id?: string
           nom?: string
           email?: string
-          role?: "admin" | "user"
+          role?: "admin" | "user" | "copro" | "super_admin"
           organisation_id?: string | null
           permissions?: Record<string, boolean>
           created_at?: string

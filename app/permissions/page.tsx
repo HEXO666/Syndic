@@ -57,7 +57,7 @@ export default function PermissionsPage() {
         if (data) {
           setStaffUsers(
             data
-              .filter((p) => p.role !== "admin")
+              .filter((p) => p.role === "user")
               .map((p) => ({
                 id: p.id,
                 nom: p.nom,

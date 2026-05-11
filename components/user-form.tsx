@@ -205,9 +205,8 @@ export function UserForm({ user, onSuccess, onCancel }: UserFormProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="user">Utilisateur</SelectItem>
+              <SelectItem value="user">Utilisateur (staff)</SelectItem>
               <SelectItem value="admin">Administrateur</SelectItem>
-              <SelectItem value="moderator">Modérateur</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       email_confirm: true,
       user_metadata: {
         nom: body.coproprietaireName,
-        role: "user",
+        role: "copro",
         coproprietaire_id: body.coproprietaireId,
         coproprietaire_cin: body.coproprietaireCin ?? null,
       },
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       id: newUserId,
       nom: body.coproprietaireName,
       email: body.email,
-      role: "user",
+      role: "copro",
       organisation_id: requesterProfile.organisation_id,
     })
 

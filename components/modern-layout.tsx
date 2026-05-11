@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { ModernSidebar } from "@/components/modern-sidebar"
 import { ModernHeader } from "@/components/modern-header"
+import { usePathname, useRouter } from "next/navigation"
 
 interface ModernLayoutProps {
   children: React.ReactNode
@@ -13,6 +14,17 @@ interface ModernLayoutProps {
 export function ModernLayout({ children, title }: ModernLayoutProps) {
   const { user } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!user) return
+    if (user.role === "copro" && pathname !== "/espace") {
+      router.replace("/espace")
+    } else if (user.role === "super_admin" && !pathname.startsWith("/super-admin")) {
+      router.replace("/super-admin/organisations")
+    }
+  }, [user, pathname])
 
   if (!user) return <>{children}</>
 

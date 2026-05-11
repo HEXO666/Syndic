@@ -6,13 +6,14 @@ import { getSupabaseClient } from "./supabase/client"
 import type { Profile } from "./supabase/types"
 import { syncPermissionsFromDb } from "./permissions"
 
-export type UserRole = "admin" | "user"
+export type UserRole = "admin" | "user" | "copro" | "super_admin"
 
 export interface User {
   id: string
   email: string
   name: string
   role: UserRole
+  organisation_id?: string | null
 }
 
 interface AuthContextType {
@@ -29,7 +30,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function profileToUser(p: Profile): User {
-  return { id: p.id, email: p.email, name: p.nom, role: p.role }
+  return { id: p.id, email: p.email, name: p.nom, role: p.role as UserRole, organisation_id: p.organisation_id }
 }
 
 function applyProfileSideEffects(profile: Profile) {
@@ -111,14 +112,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!error && data.user) {
       await supabase
         .from("profiles")
-        .update({ nom: userData.name, role: userData.role })
+        .update({ nom: userData.name, role: userData.role as "admin" | "user" | "copro" | "super_admin" })
         .eq("id", data.user.id)
       await loadUsers()
     }
   }
 
   const updateUser = async (id: string, userData: Partial<User & { password?: string }>) => {
-    type ProfileUpdate = { nom?: string; role?: "admin" | "user" }
+    type ProfileUpdate = { nom?: string; role?: "admin" | "user" | "copro" | "super_admin" }
     const updates: ProfileUpdate = {}
     if (userData.name !== undefined) updates.nom = userData.name
     if (userData.role !== undefined) updates.role = userData.role

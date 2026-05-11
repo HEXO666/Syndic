@@ -15,6 +15,10 @@ import {
   Users, CreditCard, Download, Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button-enhanced"
+import { QuittancePDF } from "@/components/quittance-pdf"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog"
 
 const MOIS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"]
 
@@ -122,6 +126,19 @@ export default function RapportsPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400">Synthèse financière et état des paiements</p>
             </div>
           </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button leftIcon={<Download className="h-4 w-4" />} variant="outline">
+                Générer une quittance
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Quittance de paiement</DialogTitle>
+              </DialogHeader>
+              <QuittancePDF />
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* KPI Cards */}
