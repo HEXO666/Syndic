@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { ModernPaiementForm } from "@/components/modern-paiement-form"
 import { Button } from "@/components/ui/button-enhanced"
 import { Input } from "@/components/ui/input-enhanced"
@@ -25,6 +25,8 @@ import {
   Clock,
   Filter,
   FileDown,
+  RefreshCw,
+  Loader2,
 } from "lucide-react"
 
 const statusLabels: Record<Paiement["statut"], { label: string; badgeClass: string }> = {
@@ -48,6 +50,26 @@ export default function ModernPaiements() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedPaiement, setSelectedPaiement] = useState<Paiement | null>(null)
   const [prefillCoproId, setPrefillCoproId] = useState<string | undefined>(undefined)
+  const [generating, setGenerating] = useState(false)
+  const [generateResult, setGenerateResult] = useState<{ created: number; year: string } | null>(null)
+
+  const currentYear = String(new Date().getFullYear())
+
+  const generateAnnualPaiements = useCallback(async () => {
+    setGenerating(true)
+    setGenerateResult(null)
+    try {
+      const res = await fetch(`/api/cron/generate-annual-paiements?year=${currentYear}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Erreur")
+      setGenerateResult({ created: data.created, year: data.year })
+      if (data.created > 0) window.location.reload()
+    } catch {
+      setGenerateResult({ created: -1, year: currentYear })
+    } finally {
+      setGenerating(false)
+    }
+  }, [currentYear])
 
   const normalizedSearch = searchTerm.trim().toLowerCase()
 
@@ -128,7 +150,30 @@ export default function ModernPaiements() {
             Consultez les paiements, filtrez par statut et ajoutez de nouvelles entrées.
           </p>
         </div>
-        <Dialog
+        <div className="flex items-center gap-3">
+          {/* Generate annual paiements button */}
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={generateAnnualPaiements}
+              disabled={generating}
+              leftIcon={generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            >
+              {generating ? "Génération…" : `Cotisations ${currentYear}`}
+            </Button>
+            {generateResult && (
+              <span className={`text-xs ${generateResult.created === -1 ? "text-red-500" : generateResult.created === 0 ? "text-slate-500" : "text-emerald-600"}`}>
+                {generateResult.created === -1
+                  ? "Erreur lors de la génération"
+                  : generateResult.created === 0
+                  ? "Toutes les cotisations existent déjà"
+                  : `${generateResult.created} cotisation(s) créée(s)`}
+              </span>
+            )}
+          </div>
+
+          <Dialog
           open={isFormOpen}
           onOpenChange={(open) => {
             if (!open) {
@@ -140,7 +185,7 @@ export default function ModernPaiements() {
         >
           <DialogTrigger asChild>
             <Button
-              
+
               size="lg"
               onClick={handleAdd}
               leftIcon={<Plus className="h-4 w-4" />}
@@ -165,6 +210,7 @@ export default function ModernPaiements() {
             />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
